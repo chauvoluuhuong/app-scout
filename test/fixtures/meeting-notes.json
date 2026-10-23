@@ -1,0 +1,1545 @@
+{
+ "note": "Real public store data from an App Scout scout for \"ai meeting notes\" (US), 2026-10-23, used by scripts/e2e.mjs to run offline.",
+ "session": {
+  "name": "ai meeting notes (US)",
+  "market": "us",
+  "topic": "ai meeting notes",
+  "target": 50,
+  "stores": [
+   "appstore",
+   "play",
+   "chrome",
+   "workspace",
+   "github"
+  ],
+  "progress": {
+   "pct": 100,
+   "step": "Done",
+   "perStore": {
+    "appstore": {
+     "status": "done",
+     "apps": 16,
+     "details": 16,
+     "reviews": 50,
+     "slowed": 0
+    },
+    "play": {
+     "status": "done",
+     "apps": 15,
+     "details": 15,
+     "reviews": 0,
+     "slowed": 0
+    },
+    "chrome": {
+     "status": "done",
+     "apps": 8,
+     "details": 8,
+     "reviews": 0,
+     "slowed": 0
+    },
+    "workspace": {
+     "status": "done",
+     "apps": 5,
+     "details": 5,
+     "reviews": 0,
+     "slowed": 0
+    },
+    "github": {
+     "status": "done",
+     "apps": 2,
+     "details": 2,
+     "reviews": 0,
+     "slowed": 0
+    }
+   },
+   "searches": {
+    "done": 5,
+    "total": 5
+   },
+   "pricingPages": 16,
+   "reviewsRead": 50
+  }
+ },
+ "apps": [
+  {
+   "id": "a1",
+   "store": "github",
+   "storeId": "Zackriya-Solutions/meetily",
+   "name": "meetily",
+   "developer": "Zackriya-Solutions",
+   "url": "https://github.com/Zackriya-Solutions/meetily",
+   "summary": "Privacy first, AI meeting assistant with 4x faster Parakeet/Whisper live transcription, speaker diarization, and Ollama summarization built on Rust. 100% local processing. no cloud required. Meetily (Meetly Ai - https://meetily.ai) is the #1 Self-hosted, Open-source Ai meeting note taker for macOS &",
+   "category": "Rust",
+   "rating": null,
+   "ratingsCount": null,
+   "users": 32072,
+   "usersLabel": "32,072 stars",
+   "usersKind": "stars",
+   "price": null,
+   "priceLabel": "Open source",
+   "source": "GitHub API",
+   "sourceUrl": "https://github.com/Zackriya-Solutions/meetily",
+   "conf": "H"
+  },
+  {
+   "id": "a2",
+   "store": "github",
+   "storeId": "Natively-AI-assistant/natively-cluely-ai-assistant",
+   "name": "natively-cluely-ai-assistant",
+   "developer": "Natively-AI-assistant",
+   "url": "https://github.com/Natively-AI-assistant/natively-cluely-ai-assistant",
+   "summary": "Natively — Free open-source AI meeting assistant, interview copilot, and note taker. The best alternative to Cluely, Otter, Granola, Final Round AI, Fireflies, and Interview Coder. Real-time transcription, AI meeting notes, lecture recording, local RAG, BYOK, and stealth mode. Runs locally. No subsc",
+   "category": "TypeScript",
+   "rating": null,
+   "ratingsCount": null,
+   "users": 3062,
+   "usersLabel": "3,062 stars",
+   "usersKind": "stars",
+   "price": null,
+   "priceLabel": "Open source",
+   "source": "GitHub API",
+   "sourceUrl": "https://github.com/Natively-AI-assistant/natively-cluely-ai-assistant",
+   "conf": "H"
+  },
+  {
+   "id": "a3",
+   "store": "appstore",
+   "storeId": "6752771071",
+   "name": "AI Note Taker - Talk To Text",
+   "developer": "Chan Tai",
+   "url": "https://apps.apple.com/us/app/ai-note-taker-talk-to-text/id6752771071",
+   "summary": "In today’s fast-paced world, capturing ideas accurately shouldn’t be a chore.\nAI Note Taker – Talk To Text is your intelligent companion for transforming spoken words into perfectly structured notes - instantly. \nDesigned for students, professionals, and anyone who values efficiency, this app elimin",
+   "category": "Education",
+   "rating": 4.75,
+   "ratingsCount": 4,
+   "users": 4,
+   "usersLabel": "4 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "AI Note Taker Weekly",
+     "price": "$7.99"
+    },
+    {
+     "name": "AI Note Taker Weekly Sale",
+     "price": "$5.99"
+    },
+    {
+     "name": "AI Note Taker Monthly",
+     "price": "$19.99"
+    }
+   ],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/ai-note-taker-talk-to-text/id6752771071",
+   "conf": "H"
+  },
+  {
+   "id": "a4",
+   "store": "appstore",
+   "storeId": "1276437113",
+   "name": "Otter Transcribe Voice Notes",
+   "developer": "Otter.ai, Inc.",
+   "url": "https://apps.apple.com/us/app/otter-transcribe-voice-notes/id1276437113",
+   "summary": "Never take meeting notes again. Otter AI is the fastest way to transcribe voice in real time. Get a meeting assistant that records audio, writes notes, automatically captures slides, and generates summaries. \n\nAvailable in English, Spanish, French and Japanese. Otter AI is also available on the web.",
+   "category": "Productivity",
+   "rating": 4.7915,
+   "ratingsCount": 86230,
+   "users": 86230,
+   "usersLabel": "86,230 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Otter Pro (monthly)",
+     "price": "$16.99"
+    },
+    {
+     "name": "Otter Pro (yearly)",
+     "price": "$99.99"
+    },
+    {
+     "name": "Otter Pro (Yearly)",
+     "price": "$99.99"
+    },
+    {
+     "name": "Otter Business (monthly)",
+     "price": "$30.00"
+    },
+    {
+     "name": "Otter Business (yearly)",
+     "price": "$239.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/otter-transcribe-voice-notes/id1276437113",
+   "conf": "H"
+  },
+  {
+   "id": "a5",
+   "store": "appstore",
+   "storeId": "6504206467",
+   "name": "Minutes: AI Meeting Note Taker",
+   "developer": "Minutes AI, LLC",
+   "url": "https://apps.apple.com/us/app/minutes-ai-meeting-note-taker/id6504206467",
+   "summary": "Minutes AI automatically does your meeting notes and transcriptions with AI. Minutes records audio and provides word for word transcripts with speakers labels. Then, it gives you formatted notes, summaries, and the ability to search for key terms/topics. You can ask questions like “What stats did La",
+   "category": "Productivity",
+   "rating": 4.87528,
+   "ratingsCount": 14016,
+   "users": 14016,
+   "usersLabel": "14,016 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Unlimited Access",
+     "price": "$14.99"
+    },
+    {
+     "name": "Unlimited Access",
+     "price": "$99.99"
+    },
+    {
+     "name": "Unlimited Access",
+     "price": "$79.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/minutes-ai-meeting-note-taker/id6504206467",
+   "conf": "H"
+  },
+  {
+   "id": "a6",
+   "store": "appstore",
+   "storeId": "6739429409",
+   "name": "Granola - AI Meeting Notes",
+   "developer": "Granola inc",
+   "url": "https://apps.apple.com/us/app/granola-ai-meeting-notes/id6739429409",
+   "summary": "Granola is the AI notepad for people in back-to-back meetings, trusted by top founders, VCs, and recruiters. And now it's available on your iPhone.\n\nStay present and capture every conversation on-the-go — perfect for coffee catch-ups, phone calls, conference days, or just distilling your thoughts.\n\n",
+   "category": "Productivity",
+   "rating": 4.96129,
+   "ratingsCount": 14601,
+   "users": 14601,
+   "usersLabel": "14,601 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/granola-ai-meeting-notes/id6739429409",
+   "conf": "H"
+  },
+  {
+   "id": "a7",
+   "store": "appstore",
+   "storeId": "6736370215",
+   "name": "AI Meeting Notes: Scribbe AI",
+   "developer": "Scribbe AI Inc.",
+   "url": "https://apps.apple.com/us/app/ai-meeting-notes-scribbe-ai/id6736370215",
+   "summary": "Scribbe – AI Note Taker & Meeting Notes App Trusted by 10,000+ users.\n\nScribbe is your AI personal audio assistant and smart note taking app. It converts spoken audio into organized and actionable text. Using advanced AI note taker technology, the app turns your recordings into accurate transcripts,",
+   "category": "Productivity",
+   "rating": 4.54688,
+   "ratingsCount": 128,
+   "users": 128,
+   "usersLabel": "128 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Pro Subscription - Weekly",
+     "price": "$6.99"
+    },
+    {
+     "name": "Pro Subscription - Monthly",
+     "price": "$19.99"
+    },
+    {
+     "name": "Pro Subscription - Annually",
+     "price": "$99.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/ai-meeting-notes-scribbe-ai/id6736370215",
+   "conf": "H"
+  },
+  {
+   "id": "a8",
+   "store": "appstore",
+   "storeId": "6670175056",
+   "name": "Summary - AI Note Taker",
+   "developer": "Labhouse Mobile SL",
+   "url": "https://apps.apple.com/us/app/summary-ai-note-taker/id6670175056",
+   "summary": "Summary AI makes meetings more productive by automatically recording, transcribing, and summarizing conversations. Whether it’s a business meeting, interview, classroom lecture, or podcast, Summary AI captures everything clearly so you can stay present and focus.\n\nWith one tap, the app records audio",
+   "category": "Productivity",
+   "rating": 4.71035,
+   "ratingsCount": 55449,
+   "users": 55449,
+   "usersLabel": "55,449 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Weekly Subscription",
+     "price": "$8.99"
+    },
+    {
+     "name": "Yearly Subscription",
+     "price": "$79.99"
+    },
+    {
+     "name": "Yearly Subscription",
+     "price": "$99.99"
+    },
+    {
+     "name": "Monthly Subscription",
+     "price": "$29.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/summary-ai-note-taker/id6670175056",
+   "conf": "H"
+  },
+  {
+   "id": "a9",
+   "store": "appstore",
+   "storeId": "1444383602",
+   "name": "Goodnotes: AI Notes, Docs, PDF",
+   "developer": "Goodnotes Limited",
+   "url": "https://apps.apple.com/us/app/goodnotes-ai-notes-docs-pdf/id1444383602",
+   "summary": "Goodnotes has always been the place to capture your ideas — from quick notes to big plans. Now, it goes further. With powerful AI and new ways to capture information, Goodnotes helps you connect the dots, unlock insights, and turn ideas into action.\n*Existing Goodnotes 5 users can continue to use Go",
+   "category": "Productivity",
+   "rating": 4.71807,
+   "ratingsCount": 464413,
+   "users": 464413,
+   "usersLabel": "464,413 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Essential (Yearly)",
+     "price": "$11.99"
+    },
+    {
+     "name": "Special Edition",
+     "price": "$35.99"
+    },
+    {
+     "name": "Goodnotes 6 Free Trial",
+     "price": "$0.00"
+    },
+    {
+     "name": "Goodnotes Pro (Yearly)",
+     "price": "$35.99"
+    },
+    {
+     "name": "Goodnotes 6 One-Time Payment",
+     "price": "$28.99"
+    },
+    {
+     "name": "AI Pass (Monthly)",
+     "price": "$9.99"
+    },
+    {
+     "name": "Marketplace Content",
+     "price": "$9.99"
+    },
+    {
+     "name": "Marketplace Content",
+     "price": "$1.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/goodnotes-ai-notes-docs-pdf/id1444383602",
+   "conf": "H"
+  },
+  {
+   "id": "a10",
+   "store": "appstore",
+   "storeId": "6463164203",
+   "name": "Fireflies: AI notetaker",
+   "developer": "FIREFLIES.AI CORP.",
+   "url": "https://apps.apple.com/us/app/fireflies-ai-notetaker/id6463164203",
+   "summary": "Fireflies Talk now on mobile. Tap the mic and dictate into any app, in 90+ languages. Unlimited on every plan.\n\nFireflies.ai helps your team transcribe, summarize, search, and analyze voice conversations.\n\nAutomatically record and transcribe meetings\n- Transcribe meetings across several video-confer",
+   "category": "Productivity",
+   "rating": 4.81934,
+   "ratingsCount": 5336,
+   "users": 5336,
+   "usersLabel": "5,336 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/fireflies-ai-notetaker/id6463164203",
+   "conf": "H"
+  },
+  {
+   "id": "a11",
+   "store": "appstore",
+   "storeId": "6483293628",
+   "name": "Voicenotes AI Notes & Meetings",
+   "developer": "Coping Hard Inc.",
+   "url": "https://apps.apple.com/us/app/voicenotes-ai-notes-meetings/id6483293628",
+   "summary": "Voicenotes is the easiest way to take notes — whether you’re in a meeting, on a walk, or processing a thought out loud.\nJust hit record. Voicenotes transcribes your speech instantly, summarizes what matters, and lets you ask your AI to recall anything later.\n\nRecord everything. Remember anything.\n\nU",
+   "category": "Productivity",
+   "rating": 4.77473,
+   "ratingsCount": 7178,
+   "users": 7178,
+   "usersLabel": "7,178 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Weekly Subscription",
+     "price": "$8.99"
+    },
+    {
+     "name": "Monthly Subscription",
+     "price": "$14.99"
+    },
+    {
+     "name": "Annual subscription(Discontinued)",
+     "price": "$99.99"
+    },
+    {
+     "name": "Annual subscription",
+     "price": "$89.99"
+    },
+    {
+     "name": "Annual Subscription",
+     "price": "$99.99"
+    },
+    {
+     "name": "Annual subscription",
+     "price": "$99.99"
+    },
+    {
+     "name": "Annual subscription(Discontinued)",
+     "price": "$79.99"
+    },
+    {
+     "name": "Believer(Discontinued)",
+     "price": "$189.99"
+    },
+    {
+     "name": "Weekly Subscription(Discontinued)",
+     "price": "$8.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/voicenotes-ai-notes-meetings/id6483293628",
+   "conf": "H"
+  },
+  {
+   "id": "a12",
+   "store": "appstore",
+   "storeId": "6717590733",
+   "name": "AI Meeting Notes",
+   "developer": "Screen Time Control LLC",
+   "url": "https://apps.apple.com/us/app/ai-meeting-notes/id6717590733",
+   "summary": "AI Meeting Notes and AI Meeting Minutes Made Simple\n\nLooking for the ultimate solution to streamline your AI meeting notes and effortlessly generate AI meeting minutes? Our app is designed to revolutionize how you record, transcribe, and summarize meetings. With cutting-edge AI technology, you can c",
+   "category": "Business",
+   "rating": 4.07895,
+   "ratingsCount": 38,
+   "users": 38,
+   "usersLabel": "38 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Premium",
+     "price": "$9.99"
+    },
+    {
+     "name": "Premium",
+     "price": "$99.99"
+    },
+    {
+     "name": "Premium",
+     "price": "$14.99"
+    },
+    {
+     "name": "Premium",
+     "price": "$119.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/ai-meeting-notes/id6717590733",
+   "conf": "H"
+  },
+  {
+   "id": "a13",
+   "store": "appstore",
+   "storeId": "6741517781",
+   "name": "Cue: AI Note Taker & Recorder",
+   "developer": "44pixels Limited",
+   "url": "https://apps.apple.com/us/app/cue-ai-note-taker-recorder/id6741517781",
+   "summary": "Cue – The Hands-Free AI Meeting Note Taker\n\nStay fully engaged in every conversation without the hassle of taking notes. Cue uses cutting-edge AI to capture discussions— in person or online—and instantly produce accurate summaries, action items, and key information. Whether you’re in a business meet",
+   "category": "Productivity",
+   "rating": 4.43952,
+   "ratingsCount": 3720,
+   "users": 3720,
+   "usersLabel": "3,720 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Weekly Access",
+     "price": "$7.99"
+    },
+    {
+     "name": "Yearly Access",
+     "price": "$99.99"
+    },
+    {
+     "name": "Weekly Access",
+     "price": "$9.99"
+    },
+    {
+     "name": "Yearly Access",
+     "price": "$119.99"
+    },
+    {
+     "name": "Weekly Access",
+     "price": "$5.99"
+    },
+    {
+     "name": "Monthly",
+     "price": "$14.99"
+    },
+    {
+     "name": "Monthly Access",
+     "price": "$24.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/cue-ai-note-taker-recorder/id6741517781",
+   "conf": "H"
+  },
+  {
+   "id": "a14",
+   "store": "appstore",
+   "storeId": "360593530",
+   "name": "Notability: AI Notes & Planner",
+   "developer": "Ginger Labs, Inc.",
+   "url": "https://apps.apple.com/us/app/notability-ai-notes-planner/id360593530",
+   "summary": "From your first lecture to your next big meeting, Notability helps you think, learn, and work better. Take handwritten notes, annotate documents, record audio, and stay organized in one place so your ideas are always clear, searchable, and ready when you need them.\n\nNEW: NOTABILITY CLASSIC IS BACK\nP",
+   "category": "Productivity",
+   "rating": 4.76075,
+   "ratingsCount": 458262,
+   "users": 458262,
+   "usersLabel": "458,262 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Notability Plus",
+     "price": "$19.99"
+    },
+    {
+     "name": "Notability Lite",
+     "price": "$14.99"
+    },
+    {
+     "name": "Notability Lite",
+     "price": "$5.99"
+    },
+    {
+     "name": "Notability Plus",
+     "price": "$7.99"
+    },
+    {
+     "name": "Notability Pro",
+     "price": "$99.99"
+    },
+    {
+     "name": "Notability Pro",
+     "price": "$19.99"
+    },
+    {
+     "name": "Notability Plus",
+     "price": "$12.99"
+    }
+   ],
+   "reviewsRead": 50,
+   "lowReviews": [
+    {
+     "stars": 1,
+     "title": "Not honest…",
+     "text": "When I purchased the app 3 years ago, it was a full version for a lifetime. Now they named my version classic and they don’t give me the new features. That’s dirty. At the beginning they were generous… They could at least give an option to buy new features. I hate subscription wi"
+    },
+    {
+     "stars": 1,
+     "title": "Frustrating for legacy users",
+     "text": "I’ve had notability for over a decade, and when notability started to offer the paid model, users from the beginning were told we would not need to upgrade to a paid model. Now, I’m constantly met with screens prompting me to create an online account. I don’t need upgrades; I can"
+    },
+    {
+     "stars": 1,
+     "title": "IPad and Window does not sync properly",
+     "text": "Hello developer, I have been having this issue along with few others, the text does not align the same throughout different platforms."
+    },
+    {
+     "stars": 1,
+     "title": "Disappointment as a 6 year user",
+     "text": "Notability used to be great. I’ve had the paid version since 2020, prior to all these subscription options (which they keep pushing on me every time I open the app). Nowadays this app can’t even load a single note, or will crash halfway through writing one. As a grad student this"
+    },
+    {
+     "stars": 1,
+     "title": "K huh",
+     "text": "I can’t publish anymore fix it"
+    }
+   ],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/notability-ai-notes-planner/id360593530",
+   "conf": "H"
+  },
+  {
+   "id": "a15",
+   "store": "appstore",
+   "storeId": "6738089216",
+   "name": "AI Note Taker: Lisnr",
+   "developer": "Aleh Kasaryn",
+   "url": "https://apps.apple.com/us/app/ai-note-taker-lisnr/id6738089216",
+   "summary": "Lisnr: Simplify Your Notes, Elevate Your Productivity!\n\nSay goodbye to messy notebooks and time-consuming manual transcription! With Lisnr, you can transform your audio, text, or documents into organized, insightful notes in seconds. Whether you're a student capturing lectures or a professional reco",
+   "category": "Education",
+   "rating": 4.29565,
+   "ratingsCount": 115,
+   "users": 115,
+   "usersLabel": "115 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Premium monthly with Trial",
+     "price": "$19.99"
+    },
+    {
+     "name": "Premium weekly",
+     "price": "$8.99"
+    },
+    {
+     "name": "Premium Monthly",
+     "price": "$19.99"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/ai-note-taker-lisnr/id6738089216",
+   "conf": "H"
+  },
+  {
+   "id": "a16",
+   "store": "appstore",
+   "storeId": "6451491556",
+   "name": "Wave AI Note Taker & Recorder",
+   "developer": "Mohrer Associates LLC",
+   "url": "https://apps.apple.com/us/app/wave-ai-note-taker-recorder/id6451491556",
+   "summary": "Wave AI Note Taker: Audio and Phone Call Recorder for Transcription, Note-Taking & More\n\nWhether you're in a business meeting, classroom lecture, or on a call, Wave ensures you never miss a crucial detail.\n\nWith its seamless background audio recording, intelligent summaries, and powerful AI transcri",
+   "category": "Productivity",
+   "rating": 4.85372,
+   "ratingsCount": 12216,
+   "users": 12216,
+   "usersLabel": "12,216 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Professional",
+     "price": "$8.99"
+    },
+    {
+     "name": "Professional",
+     "price": "$21.99"
+    },
+    {
+     "name": "Standard",
+     "price": "$6.00"
+    },
+    {
+     "name": "Professional",
+     "price": "$6.99"
+    },
+    {
+     "name": "Professional",
+     "price": "$139.99"
+    },
+    {
+     "name": "Professional",
+     "price": "$19.99"
+    },
+    {
+     "name": "Standard",
+     "price": "$15.00"
+    },
+    {
+     "name": "Professional",
+     "price": "$17.99"
+    },
+    {
+     "name": "Standard",
+     "price": "$100.00"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/wave-ai-note-taker-recorder/id6451491556",
+   "conf": "H"
+  },
+  {
+   "id": "a17",
+   "store": "appstore",
+   "storeId": "6738971048",
+   "name": "Circleback - AI Meeting Notes",
+   "developer": "Circleback AI, Inc.",
+   "url": "https://apps.apple.com/us/app/circleback-ai-meeting-notes/id6738971048",
+   "summary": "Circleback records, transcribes, and turns every conversation into clear, actionable notes you can search in seconds.\n\nStop worrying about taking notes, missing decisions, or forgetting follow-ups. Circleback captures your meetings, online or in-person, and gives you a transcript and notes you can t",
+   "category": "Productivity",
+   "rating": 4.81273,
+   "ratingsCount": 267,
+   "users": 267,
+   "usersLabel": "267 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/circleback-ai-meeting-notes/id6738971048",
+   "conf": "H"
+  },
+  {
+   "id": "a18",
+   "store": "appstore",
+   "storeId": "6503079839",
+   "name": "Tiro - AI Meeting Notes",
+   "developer": "ThePlato Inc.",
+   "url": "https://apps.apple.com/us/app/tiro-ai-meeting-notes/id6503079839",
+   "summary": "No more worries about important meetings—Tiro has you covered. Capture every detail in real time, get your documents in just 3 seconds.\n\nFocus on the Conversation, Let Tiro Handle the Rest\n\n1. Real-Time Note-Taking  \n   Experience smart recording with real-time voice transcription and summarization.",
+   "category": "Productivity",
+   "rating": 4.70833,
+   "ratingsCount": 48,
+   "users": 48,
+   "usersLabel": "48 ratings",
+   "usersKind": "ratings",
+   "price": 0,
+   "priceLabel": "Free",
+   "iapItems": [
+    {
+     "name": "Pro",
+     "price": "$14.49"
+    },
+    {
+     "name": "Lite",
+     "price": "$7.79"
+    },
+    {
+     "name": "Max",
+     "price": "$32.49"
+    }
+   ],
+   "reviewsRead": 0,
+   "lowReviews": [],
+   "source": "App Store (iTunes API)",
+   "sourceUrl": "https://apps.apple.com/us/app/tiro-ai-meeting-notes/id6503079839",
+   "conf": "H"
+  },
+  {
+   "id": "a19",
+   "store": "play",
+   "storeId": "com.aisense.otter",
+   "name": "OtterAI Transcribe Voice Notes",
+   "developer": "Otter.ai",
+   "url": "https://play.google.com/store/apps/details?id=com.aisense.otter",
+   "summary": "AI note taker & meeting summarizer. Record audio, voice memos & video calls",
+   "category": "PRODUCTIVITY",
+   "rating": 4.778987884521484,
+   "ratingsCount": 46594,
+   "users": 5000000,
+   "usersLabel": "5M+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.aisense.otter",
+   "conf": "H"
+  },
+  {
+   "id": "a20",
+   "store": "chrome",
+   "storeId": "kmjmlilenakedodldceipdnmmnfkahni",
+   "name": "Scribbl: AI Note Taker for Meetings: Record Google Meet, Zoom & Teams",
+   "developer": "Scribbl, Inc.",
+   "url": "https://chromewebstore.google.com/detail/scribbl-ai-note-taker-for/kmjmlilenakedodldceipdnmmnfkahni",
+   "summary": "AI meeting notes, minutes, transcripts and recordings with no bot in the call. Ask ChatGPT or Claude about any meeting.",
+   "category": "Extension",
+   "rating": 4.9,
+   "ratingsCount": 3300,
+   "users": 50000,
+   "usersLabel": "50,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/scribbl-ai-note-taker-for/kmjmlilenakedodldceipdnmmnfkahni",
+   "conf": "H"
+  },
+  {
+   "id": "a21",
+   "store": "play",
+   "storeId": "com.codespaceapps.meetingtranscriber",
+   "name": "Smart Noter - AI Note Taker",
+   "developer": "Deep Flow Apps",
+   "url": "https://play.google.com/store/apps/details?id=com.codespaceapps.meetingtranscriber",
+   "summary": "Audio, Voice & Speech to Text. Generate AI Notes, Transcriptions & Action Items",
+   "category": "PRODUCTIVITY",
+   "rating": 4.615384578704834,
+   "ratingsCount": 121929,
+   "users": 5000000,
+   "usersLabel": "5M+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.codespaceapps.meetingtranscriber",
+   "conf": "H"
+  },
+  {
+   "id": "a22",
+   "store": "chrome",
+   "storeId": "pdcdbpcmjffmfmcolgnnigdadkhiadlo",
+   "name": "AI Meeting Notes Taker & Screen Recorder",
+   "developer": "Les Technologies Openmind Inc.",
+   "url": "https://chromewebstore.google.com/detail/ai-meeting-notes-taker-sc/pdcdbpcmjffmfmcolgnnigdadkhiadlo",
+   "summary": "Berrycast screen recorder records, transcribes and generates AI meeting summaries for Zoom, Google Meet and MS Teams.",
+   "category": "Extension",
+   "rating": 4.6,
+   "ratingsCount": 28,
+   "users": 10000,
+   "usersLabel": "10,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/ai-meeting-notes-taker-sc/pdcdbpcmjffmfmcolgnnigdadkhiadlo",
+   "conf": "H"
+  },
+  {
+   "id": "a23",
+   "store": "workspace",
+   "storeId": "219217805549",
+   "name": "AI Transcriber: Speech to Text",
+   "developer": "ai-transcriber",
+   "url": "https://workspace.google.com/marketplace/app/ai_transcriber_speech_to_text/219217805549",
+   "summary": "AI-powered meeting transcription & voice-to-text. Supports multi-speaker detection, 33 languages, one-click text polish and insert into Google Docs™, Sheets™ & Slides™.",
+   "category": "Workspace add-on",
+   "rating": 3.9,
+   "ratingsCount": 7,
+   "users": 17000,
+   "usersLabel": "17K+ installs",
+   "usersKind": "installs",
+   "price": null,
+   "priceLabel": "Free of charge",
+   "source": "Workspace Marketplace listing",
+   "sourceUrl": "https://workspace.google.com/marketplace/app/ai_transcriber_speech_to_text/219217805549",
+   "conf": "H"
+  },
+  {
+   "id": "a24",
+   "store": "play",
+   "storeId": "ai.meeting.app",
+   "name": "Meeting.ai: Note Taker Agent",
+   "developer": "Meeting.ai",
+   "url": "https://play.google.com/store/apps/details?id=ai.meeting.app",
+   "summary": "AI note taker: live transcripts, meeting minutes, Visual Notes and PPTX decks.",
+   "category": "PRODUCTIVITY",
+   "rating": 4.5,
+   "ratingsCount": 13684,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=ai.meeting.app",
+   "conf": "H"
+  },
+  {
+   "id": "a25",
+   "store": "chrome",
+   "storeId": "fggkaccpbmombhnjkjokndojfgagejfb",
+   "name": "Tactiq: AI note taker for Google Meet, Zoom and MS Teams",
+   "developer": "Tactiq HQ Pty Ltd",
+   "url": "https://chromewebstore.google.com/detail/tactiq-ai-note-taker-for/fggkaccpbmombhnjkjokndojfgagejfb",
+   "summary": "Meeting note taker and AI transcription for Google Meet, Zoom, and MS Teams.",
+   "category": "Extension",
+   "rating": 4.9,
+   "ratingsCount": 4500,
+   "users": 1000000,
+   "usersLabel": "1,000,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/tactiq-ai-note-taker-for/fggkaccpbmombhnjkjokndojfgagejfb",
+   "conf": "H"
+  },
+  {
+   "id": "a26",
+   "store": "workspace",
+   "storeId": "333911051422",
+   "name": "Slides Translator",
+   "developer": "Automagical Apps",
+   "url": "https://workspace.google.com/marketplace/app/slides_translator/333911051422",
+   "summary": "🦄 Translate your Google Slides™ and images to over 100 different languages with a single click!  ",
+   "category": "Workspace add-on",
+   "rating": 4,
+   "ratingsCount": 254,
+   "users": 35000000,
+   "usersLabel": "35M+ installs",
+   "usersKind": "installs",
+   "price": null,
+   "priceLabel": "Free of charge with paid features",
+   "source": "Workspace Marketplace listing",
+   "sourceUrl": "https://workspace.google.com/marketplace/app/slides_translator/333911051422",
+   "conf": "H"
+  },
+  {
+   "id": "a27",
+   "store": "play",
+   "storeId": "ai.krisp.krispMobile",
+   "name": "Krisp AI Meeting Note Taker",
+   "developer": "Krisp Technologies, Inc.",
+   "url": "https://play.google.com/store/apps/details?id=ai.krisp.krispMobile",
+   "summary": "Record meetings. Get AI notes, answers, action items, and CRM-ready follow-ups.",
+   "category": "PRODUCTIVITY",
+   "rating": 3.9418604373931885,
+   "ratingsCount": 384,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=ai.krisp.krispMobile",
+   "conf": "H"
+  },
+  {
+   "id": "a28",
+   "store": "chrome",
+   "storeId": "fnmcdehdcgghicnkkkimhdmcdbcpefgh",
+   "name": "AI meeting notes",
+   "developer": null,
+   "url": "https://chromewebstore.google.com/detail/ai-meeting-notes/fnmcdehdcgghicnkkkimhdmcdbcpefgh",
+   "summary": "Fast AI meeting notes: meeting minutes ai generator, ai notes taking app for Teams, Zoom, Google Meet & etc. Chrome extension.",
+   "category": "Extension",
+   "rating": 5,
+   "ratingsCount": 1,
+   "users": 1000,
+   "usersLabel": "1,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/ai-meeting-notes/fnmcdehdcgghicnkkkimhdmcdbcpefgh",
+   "conf": "H"
+  },
+  {
+   "id": "a29",
+   "store": "play",
+   "storeId": "io.labhouse.audioapp",
+   "name": "Summary - AI Note Taker",
+   "developer": "Labhouse Mobile",
+   "url": "https://play.google.com/store/apps/details?id=io.labhouse.audioapp",
+   "summary": "Note Taking AI: Record audio, transcribe speech to text, summarize meeting notes",
+   "category": "PRODUCTIVITY",
+   "rating": 4.6771697998046875,
+   "ratingsCount": 146259,
+   "users": 1000000,
+   "usersLabel": "1M+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=io.labhouse.audioapp",
+   "conf": "H"
+  },
+  {
+   "id": "a30",
+   "store": "workspace",
+   "storeId": "961264221134",
+   "name": "Microsoft Teams Meeting",
+   "developer": "Microsoft Corporation",
+   "url": "https://workspace.google.com/marketplace/app/microsoft_teams_meeting/961264221134",
+   "summary": "Easily schedule and join Microsoft Teams meetings from Google Workspace using your Teams work or school account.",
+   "category": "Workspace add-on",
+   "rating": 3,
+   "ratingsCount": 846,
+   "users": 17000000,
+   "usersLabel": "17M+ installs",
+   "usersKind": "installs",
+   "price": null,
+   "priceLabel": "Free of charge",
+   "source": "Workspace Marketplace listing",
+   "sourceUrl": "https://workspace.google.com/marketplace/app/microsoft_teams_meeting/961264221134",
+   "conf": "H"
+  },
+  {
+   "id": "a31",
+   "store": "chrome",
+   "storeId": "abmmaifmgjhjghhacobfgieedcnpnlca",
+   "name": "AI Meeting Minutes",
+   "developer": null,
+   "url": "https://chromewebstore.google.com/detail/ai-meeting-minutes/abmmaifmgjhjghhacobfgieedcnpnlca",
+   "summary": "Local AI Meeting Minutes app for near real-time ai transcription, meeting notes and summaries directly in your browser.",
+   "category": "Extension",
+   "rating": 5,
+   "ratingsCount": 3,
+   "users": 218,
+   "usersLabel": "218 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/ai-meeting-minutes/abmmaifmgjhjghhacobfgieedcnpnlca",
+   "conf": "H"
+  },
+  {
+   "id": "a32",
+   "store": "play",
+   "storeId": "com.langogo.transcribe",
+   "name": "Notta-Transcribe Audio to Text",
+   "developer": "NOTTA PTE. LTD.",
+   "url": "https://play.google.com/store/apps/details?id=com.langogo.transcribe",
+   "summary": "Convert speech to text and record voice on your phone with Notta.",
+   "category": "PRODUCTIVITY",
+   "rating": 4.1147541999816895,
+   "ratingsCount": 21469,
+   "users": 1000000,
+   "usersLabel": "1M+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.langogo.transcribe",
+   "conf": "H"
+  },
+  {
+   "id": "a33",
+   "store": "workspace",
+   "storeId": "562406866377",
+   "name": "Mail Merge for Gmail",
+   "developer": "Qualtir",
+   "url": "https://workspace.google.com/marketplace/app/mail_merge_for_gmail/562406866377",
+   "summary": "Send 2000+ personalized emails / day with Gmail™. Track opens & responses. Follow up.",
+   "category": "Workspace add-on",
+   "rating": 4.9,
+   "ratingsCount": 6117,
+   "users": 1000000,
+   "usersLabel": "1M+ installs",
+   "usersKind": "installs",
+   "price": null,
+   "priceLabel": "Free of charge with paid features",
+   "source": "Workspace Marketplace listing",
+   "sourceUrl": "https://workspace.google.com/marketplace/app/mail_merge_for_gmail/562406866377",
+   "conf": "H"
+  },
+  {
+   "id": "a34",
+   "store": "play",
+   "storeId": "com.meetgeek.assistant",
+   "name": "AI Transcribe. Speech to Text",
+   "developer": "MeetGeek: AI Note Taker. Transcribe Speech to Text",
+   "url": "https://play.google.com/store/apps/details?id=com.meetgeek.assistant",
+   "summary": "AI meeting note taker in 50+ languages. Take meeting notes automatically",
+   "category": "PRODUCTIVITY",
+   "rating": 4.53000020980835,
+   "ratingsCount": 1346,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.meetgeek.assistant",
+   "conf": "H"
+  },
+  {
+   "id": "a35",
+   "store": "chrome",
+   "storeId": "leikppilnchhhmebcmgejjmieddhbboa",
+   "name": "AI Meeting Notes & Google Meet Recorder",
+   "developer": "ALİ CEVHER",
+   "url": "https://chromewebstore.google.com/detail/ai-meeting-notes-google-m/leikppilnchhhmebcmgejjmieddhbboa",
+   "summary": "Record Google Meet calls, get live transcripts, AI summaries, action items and follow-up emails — no bot joins your meeting.",
+   "category": "Extension",
+   "rating": 5,
+   "ratingsCount": 1,
+   "users": 79,
+   "usersLabel": "79 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/ai-meeting-notes-google-m/leikppilnchhhmebcmgejjmieddhbboa",
+   "conf": "H"
+  },
+  {
+   "id": "a36",
+   "store": "workspace",
+   "storeId": "715931934006",
+   "name": "AI Slides™ Maker -Text, Video, PDF, Url to Slides™",
+   "developer": "AI Slides Maker",
+   "url": "https://workspace.google.com/marketplace/app/ai_slides_maker_text_video_pdf_url_to_sl/715931934006",
+   "summary": "Let AI convert text descriptions, summaries of videos/PDFs/web pages into visually appealing Slides™ in seconds.",
+   "category": "Workspace add-on",
+   "rating": 4,
+   "ratingsCount": 129,
+   "users": 8000000,
+   "usersLabel": "8M+ installs",
+   "usersKind": "installs",
+   "price": null,
+   "priceLabel": "Free of charge",
+   "source": "Workspace Marketplace listing",
+   "sourceUrl": "https://workspace.google.com/marketplace/app/ai_slides_maker_text_video_pdf_url_to_sl/715931934006",
+   "conf": "H"
+  },
+  {
+   "id": "a37",
+   "store": "play",
+   "storeId": "ai.granola",
+   "name": "Granola - AI Meeting Notes",
+   "developer": "Granola Inc",
+   "url": "https://play.google.com/store/apps/details?id=ai.granola",
+   "summary": "Granola is the AI notepad for people in back-to-back meetings",
+   "category": "PRODUCTIVITY",
+   "rating": 4.8947367668151855,
+   "ratingsCount": 3698,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=ai.granola",
+   "conf": "H"
+  },
+  {
+   "id": "a38",
+   "store": "chrome",
+   "storeId": "meimoidfecamngeoanhnpdjjdcefoldn",
+   "name": "Fireflies: AI meeting notes",
+   "developer": "Fireflies.ai",
+   "url": "https://chromewebstore.google.com/detail/fireflies-ai-meeting-note/meimoidfecamngeoanhnpdjjdcefoldn",
+   "summary": "Record & Transcribe meetings & calls directly from the browser with free unlimited transcriptions",
+   "category": "Extension",
+   "rating": 4.6,
+   "ratingsCount": 207,
+   "users": 200000,
+   "usersLabel": "200,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/fireflies-ai-meeting-note/meimoidfecamngeoanhnpdjjdcefoldn",
+   "conf": "H"
+  },
+  {
+   "id": "a39",
+   "store": "play",
+   "storeId": "com.ma.waveapp",
+   "name": "Wave AI Note Taker & Recorder",
+   "developer": "Mohrer Associates",
+   "url": "https://play.google.com/store/apps/details?id=com.ma.waveapp",
+   "summary": "Record and transcribe meeting notes, voice memos, and lecture notes with one tap",
+   "category": "PRODUCTIVITY",
+   "rating": 4.568047523498535,
+   "ratingsCount": 2848,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.ma.waveapp",
+   "conf": "H"
+  },
+  {
+   "id": "a40",
+   "store": "chrome",
+   "storeId": "ppbfhhgcdehhbjigifndnfmcihegokbb",
+   "name": "Bubbles - AI Meeting Notes & Screen Recorder",
+   "developer": "Vangoux Inc.",
+   "url": "https://chromewebstore.google.com/detail/bubbles-ai-meeting-notes/ppbfhhgcdehhbjigifndnfmcihegokbb",
+   "summary": "Bubbles is a free screen recorder and AI meeting notetaker to help turn conversations into actions.",
+   "category": "Extension",
+   "rating": 4.6,
+   "ratingsCount": 119,
+   "users": 30000,
+   "usersLabel": "30,000 users",
+   "usersKind": "users",
+   "price": null,
+   "priceLabel": "Free",
+   "source": "Chrome Web Store listing",
+   "sourceUrl": "https://chromewebstore.google.com/detail/bubbles-ai-meeting-notes/ppbfhhgcdehhbjigifndnfmcihegokbb",
+   "conf": "H"
+  },
+  {
+   "id": "a41",
+   "store": "play",
+   "storeId": "com.recordpro.audiorecord",
+   "name": "HiNoter - AI Note Taker",
+   "developer": "Nieruo Team",
+   "url": "https://play.google.com/store/apps/details?id=com.recordpro.audiorecord",
+   "summary": "Hi Noter, automatically transcribe meetings, extract summaries & action items.",
+   "category": "PRODUCTIVITY",
+   "rating": 4.413461685180664,
+   "ratingsCount": 53903,
+   "users": 1000000,
+   "usersLabel": "1M+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.recordpro.audiorecord",
+   "conf": "H"
+  },
+  {
+   "id": "a42",
+   "store": "play",
+   "storeId": "ai.fireflies.mobile",
+   "name": "Fireflies: AI notetaker",
+   "developer": "Fireflies.ai",
+   "url": "https://play.google.com/store/apps/details?id=ai.fireflies.mobile",
+   "summary": "AI meeting notes and voice typing",
+   "category": "PRODUCTIVITY",
+   "rating": 4.594339847564697,
+   "ratingsCount": 7699,
+   "users": 500000,
+   "usersLabel": "500K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=ai.fireflies.mobile",
+   "conf": "H"
+  },
+  {
+   "id": "a43",
+   "store": "play",
+   "storeId": "com.nextpixel.recco",
+   "name": "Recco: AI Meeting Note Taker",
+   "developer": "Recco App",
+   "url": "https://play.google.com/store/apps/details?id=com.nextpixel.recco",
+   "summary": "Note Taking AI: Record Audio, Transcribe Speech, Summarize Meetings & Chat.",
+   "category": "PRODUCTIVITY",
+   "rating": null,
+   "ratingsCount": null,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.nextpixel.recco",
+   "conf": "H"
+  },
+  {
+   "id": "a44",
+   "store": "play",
+   "storeId": "com.sota.ainotex",
+   "name": "NoteX: AI Notes & Meetings",
+   "developer": "Notionis Technologies",
+   "url": "https://play.google.com/store/apps/details?id=com.sota.ainotex",
+   "summary": "AI notetaker for live transcription, speech to text, voice memos & meeting notes",
+   "category": "PRODUCTIVITY",
+   "rating": 4.480000019073486,
+   "ratingsCount": 5204,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.sota.ainotex",
+   "conf": "H"
+  },
+  {
+   "id": "a45",
+   "store": "play",
+   "storeId": "com.hmd.quickrecorder",
+   "name": "Owll: AI Note Taker & Recorder",
+   "developer": "VOCALBEATS.AI PTE. LTD.",
+   "url": "https://play.google.com/store/apps/details?id=com.hmd.quickrecorder",
+   "summary": "AI voice recorder & Wear OS note taker for meetings, lectures, and summaries.",
+   "category": "TOOLS",
+   "rating": 4.210000038146973,
+   "ratingsCount": 612,
+   "users": 100000,
+   "usersLabel": "100K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.hmd.quickrecorder",
+   "conf": "H"
+  },
+  {
+   "id": "a46",
+   "store": "play",
+   "storeId": "com.mi.minutes.ai",
+   "name": "Auto Minutes: AI Meeting Note",
+   "developer": "Meta Innovation",
+   "url": "https://play.google.com/store/apps/details?id=com.mi.minutes.ai",
+   "summary": "Transcribe & Summarize Audio",
+   "category": "PRODUCTIVITY",
+   "rating": 3.799999952316284,
+   "ratingsCount": 194,
+   "users": 10000,
+   "usersLabel": "10K+ installs",
+   "usersKind": "installs",
+   "price": 0,
+   "priceLabel": "Free",
+   "source": "Google Play listing",
+   "sourceUrl": "https://play.google.com/store/apps/details?id=com.mi.minutes.ai",
+   "conf": "H"
+  }
+ ],
+ "grouping": {
+  "segments": [
+   {
+    "name": "Cross-platform meeting assistants",
+    "insight": "Otter leads with est. $108k–$862k/mo on iOS alone and listings on three stores; Fireflies and Granola follow on every platform.",
+    "keywords": [
+     {
+      "name": "Otter and Fireflies",
+      "insight": "The only names present on the App Store, Play and Chrome.",
+      "app_ids": [
+       "a4",
+       "a10",
+       "a19",
+       "a38",
+       "a42"
+      ]
+     },
+     {
+      "name": "AI notepads",
+      "insight": "Granola's 5★ on 14.6k ratings shows a notepad-style product can win without a bot.",
+      "app_ids": [
+       "a6",
+       "a11",
+       "a17",
+       "a37"
+      ]
+     },
+     {
+      "name": "Sales follow-up",
+      "insight": "",
+      "app_ids": [
+       "a24",
+       "a27"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Phone recorders and transcribers",
+    "insight": "The iOS earners here are recorders, not meeting bots: Minutes and Summary each est. $30k+/mo.",
+    "keywords": [
+     {
+      "name": "iOS earners",
+      "insight": "",
+      "app_ids": [
+       "a5",
+       "a8",
+       "a13",
+       "a16",
+       "a29",
+       "a39"
+      ]
+     },
+     {
+      "name": "Android-first note takers",
+      "insight": "1M–5M installs each, but no price we could read.",
+      "app_ids": [
+       "a21",
+       "a32",
+       "a34",
+       "a41",
+       "a43",
+       "a44",
+       "a45",
+       "a46"
+      ]
+     },
+     {
+      "name": "Tiny newcomers",
+      "insight": "",
+      "app_ids": [
+       "a3",
+       "a7",
+       "a12",
+       "a15",
+       "a18"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Browser meeting extensions",
+    "insight": "Tactiq reaches 1M Chrome users; most others sell 'no bot in the call'.",
+    "keywords": [
+     {
+      "name": "Bot-free recorders",
+      "insight": "",
+      "app_ids": [
+       "a20",
+       "a25",
+       "a28",
+       "a31",
+       "a35"
+      ]
+     },
+     {
+      "name": "Screen recorders with AI notes",
+      "insight": "",
+      "app_ids": [
+       "a22",
+       "a40"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Note apps adding AI",
+    "insight": "Notability (est. $412k–$3.3M/mo) and Goodnotes are bolting AI meeting notes onto big note apps.",
+    "keywords": [
+     {
+      "name": "Handwriting apps with AI",
+      "insight": "",
+      "app_ids": [
+       "a9",
+       "a14"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Workspace add-ons",
+    "insight": "Only one transcription add-on, with 17K+ installs and a 3.9★ rating.",
+    "keywords": [
+     {
+      "name": "Transcription add-ons",
+      "insight": "",
+      "app_ids": [
+       "a23"
+      ]
+     },
+     {
+      "name": "Adjacent tools",
+      "insight": "",
+      "app_ids": [
+       "a26",
+       "a30",
+       "a33",
+       "a36"
+      ]
+     }
+    ]
+   },
+   {
+    "name": "Open source",
+    "insight": "meetily's 32k stars show strong demand for private, local meeting notes.",
+    "keywords": [
+     {
+      "name": "Self-hosted assistants",
+      "insight": "",
+      "app_ids": [
+       "a1",
+       "a2"
+      ]
+     }
+    ]
+   }
+  ],
+  "openings": [
+   {
+    "name": "Paid bot-free Chrome recorder",
+    "insight": "Bot-free extensions reach up to 1M users (Tactiq) yet none shows a price we could read; 'no bot in the call' is the main pitch.",
+    "app_ids": [
+     "a25",
+     "a20",
+     "a35"
+    ],
+    "evidence": [
+     "Tactiq 1M users",
+     "Scribbl 50k users, 4.9★",
+     "'no bot joins your meet'"
+    ]
+   },
+   {
+    "name": "Google Meet add-on for transcripts",
+    "insight": "Workspace has a single transcription add-on (17K+ installs, 3.9★) while Chrome extensions for Meet reach 1M users.",
+    "app_ids": [
+     "a23"
+    ],
+    "evidence": [
+     "AI Transcriber 17K+ installs, 3.9★",
+     "Tactiq 1M Chrome users"
+    ]
+   },
+   {
+    "name": "Private, local meeting notes",
+    "insight": "An open-source local assistant has 32k GitHub stars, and no store app leads on privacy.",
+    "app_ids": [
+     "a1",
+     "a2"
+    ],
+    "evidence": [
+     "meetily 32,072 stars",
+     "Natively 3,062 stars"
+    ]
+   }
+  ],
+  "app_notes": [
+   {
+    "app_id": "a14",
+    "complaint": "Long-time users unhappy with subscription changes"
+   }
+  ]
+ }
+}

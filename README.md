@@ -78,6 +78,7 @@ Revenue is estimated with the same method as the app-market-research skill: user
 
 ```bash
 npm test                                  # unit and protocol tests, offline
+node scripts/e2e.mjs                      # end-to-end in headless Chrome, screenshots in e2e-out/
 node scripts/try.mjs "meeting notes" 20   # run a real scout through the MCP server
 node scripts/serve-dev.mjs                # serve the browser map for the dev sessions (token "dev")
 node scripts/host-harness.mjs <session>   # a minimal MCP Apps host on http://127.0.0.1:4790
