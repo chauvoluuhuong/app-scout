@@ -1,0 +1,15 @@
+{
+  "name": "app-scout",
+  "description": "App Scout: app market research on a live map",
+  "owner": {
+    "name": "Chau Vo Luu Huong",
+    "email": "chauvoluuhuong@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "app-scout",
+      "source": "./",
+      "description": "Research the app market on a live map: crawl five stores, group apps with Claude, spot openings, keep sessions."
+    }
+  ]
+}

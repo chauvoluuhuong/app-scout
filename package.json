@@ -1,0 +1,14 @@
+{
+  "name": "app-scout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App Scout: app market research on a live map, as a Claude plugin.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test test/",
+    "try": "node scripts/try.mjs",
+    "dev": "node scripts/serve-dev.mjs"
+  }
+}

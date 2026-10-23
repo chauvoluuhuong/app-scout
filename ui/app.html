@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Scout</title>
+<style>
+:root{--bg:#070B09;--bar:#0A1310;--card:rgba(10,18,15,0.95);--line:#1D4A3C;--ctl:#12261F;--ctl2:#18332A;--edge:#2F6B58;--tx:#E1F5EE;--tx2:#C9E9DD;--mut:#9FE1CB;--dim:#5F8F80;--acc:#EF9F27;--acc2:#FAC775;--accbg:#2E2104;--ok:#5DCAA5;--bad:#F09595;--coral:#F0997B;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body.page{height:100vh;overflow:hidden}
+button{font:inherit;font-size:12px;height:30px;padding:0 10px;background:var(--ctl);color:var(--tx);border:0.5px solid var(--edge);border-radius:8px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+button:hover{background:var(--ctl2)}
+button:focus-visible,[tabindex]:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.pr{background:var(--acc);color:#2E2104;border-color:var(--acc);font-weight:600}
+button.pr:hover{background:var(--acc2)}
+button.gh{background:transparent;border-color:transparent}
+button.ic{width:30px;padding:0;justify-content:center}
+button.sm{height:24px;padding:0 8px;font-size:11px}
+button.on{border-color:var(--acc);color:var(--acc2);background:var(--accbg)}
+svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.app{position:relative;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:0.5px solid var(--line);background:var(--bg)}
+body.page .app{height:100vh;border-radius:0;border:none}
+.tbar{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:0.5px solid var(--line);background:var(--bar);flex-wrap:wrap}
+.grp{display:inline-flex;align-items:center;border:0.5px solid var(--edge);border-radius:8px;overflow:hidden;height:30px}
+.grp select{height:30px;border:none;background:#0B1612;color:var(--tx);font:inherit;font-size:12px;padding:0 6px}
+.grp button{border:none;border-left:0.5px solid var(--edge);border-radius:0}
+.stat{font-size:11px;color:var(--mut);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.stage{position:relative;flex:1;min-height:0}
+canvas{display:block;width:100%;height:560px;cursor:grab;touch-action:none}
+.app.tall canvas{height:740px}
+body.page canvas,.app.full canvas{height:100%}
+body.page .stage,.app.full .stage{display:flex}
+.card{position:absolute;background:var(--card);border:0.5px solid var(--line);border-radius:10px;padding:12px;font-size:12px}
+.pn{top:12px;right:12px;width:260px;max-height:calc(100% - 24px);overflow:auto}
+.t{font-size:14px;font-weight:600;margin:0;overflow-wrap:anywhere}
+.p{font-size:11px;color:var(--ok);margin:2px 0 8px;overflow-wrap:anywhere}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+button.mb{display:block;height:auto;padding:6px 8px;text-align:left;background:var(--ctl);border:0.5px solid transparent;border-radius:6px;white-space:normal;width:100%}
+button.mb:hover{border-color:var(--acc)}
+.mb span{display:flex;justify-content:space-between;color:var(--mut);font-size:11px}
+.mb b{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.i{color:var(--tx2);margin:0 0 8px}
+.chip{border-radius:14px;margin:0 4px 4px 0}
+input,textarea{width:100%;font:inherit;font-size:12px;background:#0B1612;color:var(--tx);border:0.5px solid var(--edge);border-radius:6px;padding:6px 8px}
+pre{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;background:#0B1612;color:var(--mut);border-radius:6px;padding:6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:140px;overflow:auto;margin:6px 0 0}
+summary{color:var(--ok);cursor:pointer;font-size:11px}
+.k{color:var(--mut);font-size:11px;margin:10px 0 4px}
+.sr{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:0.5px solid var(--line)}
+label.ck{display:flex;align-items:center;gap:8px;padding:4px 0;color:var(--tx2);cursor:pointer}
+label.ck input{width:auto}
+.acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+.err{color:var(--bad);font-size:11px;margin:4px 0 0}
+.lg{top:12px;left:12px;width:226px}
+.lg.mini{width:auto;padding:6px}
+.lr{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px;color:var(--tx2)}
+.lr:hover{background:var(--ctl)}
+.pc{left:12px;bottom:12px;width:310px;transition:opacity .5s}
+.gone{opacity:0;pointer-events:none}
+.pg{height:4px;background:var(--ctl);border-radius:2px;overflow:hidden;margin:8px 0}
+.pg div{height:100%;background:var(--acc);transition:width .3s}
+.tb{display:grid;grid-template-columns:16px 1fr 40px 52px 56px;gap:4px 6px;align-items:center}
+.tb .h{color:var(--dim);font-size:10.5px}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+.ln{display:flex;gap:6px;align-items:center;padding:2px 0;color:var(--tx2)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;margin:0 4px}
+.tip{position:absolute;pointer-events:none;width:240px;background:#0B1612;border:0.5px solid var(--edge);border-radius:8px;padding:8px 10px;font-size:11.5px;color:var(--tx2);display:none}
+.tip b{color:var(--tx);font-weight:600}
+.tour{left:50%;bottom:16px;transform:translateX(-50%);width:340px;border-color:var(--acc)}
+.banner{left:50%;top:12px;transform:translateX(-50%);width:340px;border-color:var(--acc)}
+.toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--accbg);border:0.5px solid var(--acc);color:var(--acc2);font-size:12px;padding:6px 12px;border-radius:8px;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis;display:none;z-index:5}
+.modal{position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:6}
+.mc{width:min(640px,94%);max-height:88%;display:flex;flex-direction:column;background:var(--bar);border:0.5px solid var(--edge);border-radius:12px;padding:14px}
+.mc .sc{overflow:auto;margin-top:10px;border:0.5px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{position:sticky;top:0;background:var(--ctl);color:var(--mut);font-weight:600;text-align:left;padding:7px 8px;cursor:pointer;white-space:nowrap}
+td{padding:7px 8px;border-top:0.5px solid var(--line);color:var(--tx2);vertical-align:top}
+tr.cl{cursor:pointer}
+tr.cl:hover td{background:var(--ctl)}
+a{color:var(--ok)}
+.qa{background:var(--ctl);border-radius:6px;padding:8px;margin:8px 0 0}
+.qa b{color:var(--acc2);font-weight:600}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);text-align:center;padding:24px;pointer-events:none}
+.app.compact .stat{display:none}
+.app.compact #bPlan .lbl-long{display:none}
+#bPlan .lbl-short{display:none}
+.app.compact #bPlan .lbl-short{display:inline}
+.app.narrow .pn{position:static;width:auto;max-height:none;margin:8px;border-radius:10px}
+.app.narrow .pc{position:static;width:auto;margin:8px}
+.app.narrow .lg:not(.mini){width:200px}
+.app.narrow canvas{height:420px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.pc,.pg div{transition:none}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="tbar">
+    <button class="gh" id="bSes" aria-label="Switch session"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span id="sesName">App Scout</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="stat" id="stat" role="button" tabindex="0" title="Show scout details"></span>
+    <span style="flex:1"></span>
+    <div class="grp"><label class="sr-only" for="nApps">Apps to investigate</label><select id="nApps"><option value="50">50 apps</option><option value="100" selected>100 apps</option><option value="200">200 apps</option><option value="300">300 apps</option><option value="500">500 apps</option></select><button id="bScout"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Scout</button></div>
+    <button class="pr" id="bPlan"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span class="lbl-long">Plan from idea</span><span class="lbl-short">Plan</span></button>
+    <button class="ic" id="bExport" aria-label="Export this session" title="Export this session"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></button>
+    <button class="ic" id="bBrowser" aria-label="Open in browser" title="Open in browser"><svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></button>
+    <button class="ic" id="bFull" aria-label="Full screen" title="Full screen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Market map. Each dot is an app; close dots are similar apps."></canvas>
+    <div class="empty" id="empty"></div>
+    <div class="card lg mini" id="lg"></div>
+    <div class="card pn" id="pn" aria-live="polite"></div>
+    <div class="card pc gone" id="pc" aria-live="polite"></div>
+    <div class="card banner" id="banner" style="display:none"></div>
+    <div class="tip" id="tip"></div>
+    <div class="card tour" id="tour" style="display:none" role="dialog" aria-label="How to read the map"></div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="modal" id="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="mtitle"></div>
+  </div>
+</div>
+<script>
+(function () {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const fmt = (n) => n == null ? '—' : n >= 1e9 ? (n / 1e9).toFixed(1).replace('.0', '') + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(Math.round(n));
+const TIER = ['dim', 'medium', 'bright'];
+const BR = ['#2F6B58', '#5DCAA5', '#E1FBF2'], BA = [0.8, 0.92, 1], RAD = [2, 3.4, 5.4], RING = ['#5C7A96', '#8FB3D9', '#D6E8FA'];
+const LENS = {
+  leaders: { label: 'Leaders', f: (a) => a.rb === 2 && a.t === 2 },
+  gaps: { label: 'Money gaps', f: (a) => a.t === 2 && a.rb === 0 },
+  premium: { label: 'Premium niche', f: (a) => a.rb >= 1 && a.t === 0 },
+  unknown: { label: 'Unknown revenue', f: (a) => a.r == null },
+};
+
+// ------------------------------------------------------------------ bridges
+// In Claude (or any MCP Apps host) the page is an iframe and talks to the host over
+// postMessage. Opened in a browser tab, it talks to the plugin's local server directly.
+const inHost = window.parent !== window;
+const qs = new URLSearchParams(location.search);
+
+function HostBridge() {
+  let seq = 0;
+  const pending = new Map();
+  const b = { ctx: {}, onresult: null, oncontext: null };
+  const post = (m) => window.parent.postMessage({ jsonrpc: '2.0', ...m }, '*');
+  const request = (method, params) => new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject }); post({ id, method, params }); });
+  window.addEventListener('message', (e) => {
+    if (e.source !== window.parent) return;
+    const m = e.data;
+    if (!m || m.jsonrpc !== '2.0') return;
+    if (m.method === undefined) {
+      const p = pending.get(m.id);
+      if (!p) return;
+      pending.delete(m.id);
+      m.error ? p.reject(new Error(m.error.message || 'Request failed')) : p.resolve(m.result);
+      return;
+    }
+    if (m.method === 'ui/notifications/tool-result') b.onresult && b.onresult(m.params || {});
+    else if (m.method === 'ui/notifications/host-context-changed') { b.ctx = { ...b.ctx, ...m.params }; b.oncontext && b.oncontext(b.ctx); }
+    else if (m.method === 'ping' || m.method === 'ui/resource-teardown') post({ id: m.id, result: {} });
+    else if (m.id !== undefined) post({ id: m.id, error: { code: -32601, message: 'Method not found: ' + m.method } });
+  });
+  b.connect = async () => {
+    const r = await request('ui/initialize', { appInfo: { name: 'app-scout', version: '0.1.0' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' });
+    b.ctx = (r && r.hostContext) || {};
+    post({ method: 'ui/notifications/initialized' });
+    let w = 0, h = 0, queued = false;
+    const measure = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; const el = document.documentElement; const prev = el.style.height; el.style.height = 'max-content'; const H = Math.ceil(el.getBoundingClientRect().height); el.style.height = prev; const W = Math.ceil(window.innerWidth); if (W !== w || H !== h) { w = W; h = H; post({ method: 'ui/notifications/size-changed', params: { width: W, height: H } }); } }); };
+    new ResizeObserver(measure).observe(document.body);
+    measure();
+  };
+  b.action = async (action, args) => { const r = await request('tools/call', { name: 'ui_action', arguments: { action, args } }); if (r && r.isError) throw new Error((r.content && r.content[0] && r.content[0].text) || 'Action failed'); return r.structuredContent; };
+  b.say = (text) => request('ui/message', { role: 'user', content: [{ type: 'text', text }] });
+  b.context = (text) => request('ui/update-model-context', { content: [{ type: 'text', text }] }).catch(() => {});
+  b.openLink = (url) => request('ui/open-link', { url });
+  b.download = (f) => request('ui/download-file', { contents: [{ type: 'resource', resource: { uri: 'file:///' + f.filename, mimeType: f.mimeType, text: f.text } }] });
+  b.fullscreen = (on) => request('ui/request-display-mode', { mode: on ? 'fullscreen' : 'inline' });
+  b.canFullscreen = () => (b.ctx.availableDisplayModes || []).includes('fullscreen');
+  return b;
+}
+
+function BrowserBridge() {
+  const t = qs.get('t');
+  return {
+    ctx: {},
+    connect: async () => {},
+    action: async (action, args) => { const r = await fetch('/api/action?t=' + encodeURIComponent(t), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, args }) }); const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Action failed'); return j; },
+    say: null,
+    context: () => {},
+    openLink: async (url) => { window.open(url, '_blank', 'noopener'); },
+    download: null,
+    canFullscreen: () => !!document.documentElement.requestFullscreen,
+    fullscreen: async (on) => { on ? await document.documentElement.requestFullscreen() : await document.exitFullscreen(); },
+  };
+}
+
+const bridge = inHost ? HostBridge() : BrowserBridge();
+if (!inHost) document.body.classList.add('page');
+
+// ------------------------------------------------------------------ state
+let D = null;           // current snapshot from the server
+let plan = null;        // plan payload, when the view was opened by plan_research
+let mode = 'focus';     // right panel: focus | plan | sessions | export | idea
+let sel = null, focus = null, lastKey = '', ask = false, q = '', askState = null;
+let sizeBy = 'revenue', lens = null, hl = null, lgOpen = false, tourStep = -1, tourT = null, mState = null;
+let pcShow = true, pcHideT = null, wasRunning = false, sessionsList = null, exSel = new Set(['apps', 'platforms', 'reviews', 'segments', 'openings', 'questions']), exFmt = 'md';
+let ws = null, wsOk = false, fallbackT = null, lastAnswer = null, userMoved = false, lastCtx = '';
+const pos = new Map();  // app id -> { x, y } currently drawn (for smooth moves)
+const cv = $('cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, k = 1, cx = 500, cy = 300, anim = null, moveAnim = null;
+
+const running = () => D && (D.session.status === 'crawling' || D.session.status === 'queued');
+const apps = () => (D ? D.apps : []);
+const segById = (id) => D && D.segments.find((s) => s.id === id);
+const kwById = (id) => D && D.keywords.find((x) => x.id === id);
+
+// ------------------------------------------------------------------ live connection
+function connectWs() {
+  if (!D || !D.web || !D.web.ws) return;
+  if (ws && ws.sid === D.session.id && ws.readyState <= 1) return;
+  try { if (ws) ws.close(); } catch (e) {}
+  let sock;
+  try { sock = new WebSocket(D.web.ws.replace(/s=[^&]*/, 's=' + encodeURIComponent(D.session.id)) + (inHost ? '' : '&role=browser')); } catch (e) { return startFallback(); }
+  sock.sid = D.session.id;
+  ws = sock;
+  sock.onopen = () => { wsOk = true; stopFallback(); };
+  sock.onclose = () => { wsOk = false; if (ws === sock) { ws = null; if (running()) startFallback(); setTimeout(() => { if (!ws && D) connectWs(); }, 4000); } };
+  sock.onerror = () => {};
+  sock.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } onWs(m); };
+}
+let wsSeq = 0; const wsWait = new Map();
+function wsAction(action, args) { return new Promise((resolve, reject) => { const id = ++wsSeq; wsWait.set(id, { resolve, reject }); ws.send(JSON.stringify({ type: 'action', id, action, args })); }); }
+async function act(action, args) { return wsOk && ws && ws.readyState === 1 ? wsAction(action, args) : bridge.action(action, args); }
+let refreshing = false, again = false;
+async function refresh() { if (!D) return; if (refreshing) { again = true; return; } refreshing = true; try { setData(await act('snapshot', { session: D.session.id })); } catch (e) {} refreshing = false; if (again) { again = false; refresh(); } }
+function onWs(m) {
+  if (m.type === 'result') { const w = wsWait.get(m.id); if (w) { wsWait.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(m.result); } return; }
+  if (m.type === 'changed') return refresh();
+  if (m.type === 'answer') { lastAnswer = m.question; toast('Claude answered: ' + m.question.text.slice(0, 40)); refresh(); return; }
+  if (m.type === 'ask' && inHost) return relayAsk(m.question);
+}
+// When WebSocket is blocked by the host, refresh while (and only while) a crawl runs.
+function startFallback() { if (fallbackT || !running()) return; fallbackT = setInterval(() => { if (!running()) return stopFallback(); refresh(); }, 2500); }
+function stopFallback() { clearInterval(fallbackT); fallbackT = null; }
+
+// A question asked in the browser tab reaches Claude through this view in the chat.
+async function relayAsk(question) {
+  try {
+    const r = await act('delivered', { session: D.session.id, id: question.id });
+    if (r && r.already) return;
+    await bridge.say(askText(question));
+    toast('Sent your browser question to Claude');
+  } catch (e) {}
+}
+function askText(qq) {
+  return `[App Scout · session ${D.session.id} · question ${qq.id}]\n${qq.text}\n\nMap context: ${JSON.stringify(qq.context)}\n\nAnswer here, then call answer_question (session ${D.session.id}, question_id ${qq.id}) so the map shows the answer.`;
+}
+
+// ------------------------------------------------------------------ data in
+function setData(snap) {
+  if (!snap) return;
+  if (snap.view === 'plan') { plan = snap.plan; mode = 'plan'; if (!D) { D = null; } render(); return; }
+  if (snap.view === 'error') { toast(snap.message); return; }
+  const first = !D || D.session.id !== snap.session.id;
+  const prev = D;
+  D = snap;
+  const phaseChanged = !first && prev && (prev.session.status !== D.session.status || prev.session.groupedBy !== D.session.groupedBy);
+  if (first) { userMoved = false; pos.clear(); sel = null; homeCamera(); sizeBy = (D.viewState && D.viewState.sizeBy) || 'revenue'; lens = (D.viewState && D.viewState.lens) || null; pcShow = running(); mode = mode === 'plan' && plan ? 'plan' : 'focus'; if (!inHost) history.replaceState(null, '', '?s=' + encodeURIComponent(D.session.id) + '&t=' + encodeURIComponent(qs.get('t'))); }
+  if (sel && sel.id) sel = findById(sel.kind, sel.id);
+  $('sesName').textContent = D.session.name;
+  $('nApps').value = String([50, 100, 200, 300, 500].includes(D.session.target) ? D.session.target : 100);
+  moveDots(first);
+  // Keep the whole map in view while it grows and when it regroups, until the user moves it.
+  if (!first && !userMoved && (running() || phaseChanged)) homeCamera(phaseChanged);
+  const nowRunning = running();
+  if (nowRunning) { pcShow = true; clearTimeout(pcHideT); }
+  if (wasRunning && !nowRunning) {
+    clearTimeout(pcHideT);
+    pcHideT = setTimeout(() => { pcShow = false; progress(); }, 1600);
+    toast(D.session.status === 'failed' ? 'Scout failed: ' + (D.session.error || '') : `Scout finished · ${D.apps.length} apps · saved`);
+  }
+  wasRunning = nowRunning;
+  if (D.session.status === 'ready' && !D.prefs.tourDone && tourStep < 0 && D.apps.length) setTimeout(startTour, 1800);
+  connectWs();
+  if (nowRunning && !wsOk) startFallback();
+  lastKey = '';
+  render();
+}
+function findById(kind, id) {
+  if (kind === 'app') return apps().find((a) => a.id === id) && { kind, id };
+  if (kind === 'segment') return segById(id) && { kind, id };
+  if (kind === 'keyword') return kwById(id) && { kind, id };
+  if (kind === 'opening') return D.openings.find((o) => o.id === id) && { kind, id };
+  return null;
+}
+function moveDots(instant) {
+  const from = new Map(pos);
+  const t0 = performance.now();
+  cancelAnimationFrame(moveAnim);
+  if (instant) { for (const a of apps()) pos.set(a.id, { x: a.x, y: a.y }); return draw(); }
+  const step = (t) => {
+    const u = Math.min(1, (t - t0) / 700), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    for (const a of apps()) { const f = from.get(a.id) || { x: a.x, y: a.y }; pos.set(a.id, { x: f.x + (a.x - f.x) * e, y: f.y + (a.y - f.y) * e }); }
+    draw();
+    if (u < 1) moveAnim = requestAnimationFrame(step);
+  };
+  moveAnim = requestAnimationFrame(step);
+}
+
+// ------------------------------------------------------------------ map drawing
+const base = () => W / 1000;
+const sx = (x) => (x - cx) * k * base() + W / 2, sy = (y) => (y - cy) * k * base() + H / 2;
+const panelOff = () => (document.getElementById('app').classList.contains('narrow') ? 0 : 130 / (k * base()));
+const fade = (v, a, b, c, d) => (v < a || v > d ? 0 : v < b ? (v - a) / (b - a) : v <= c ? 1 : (d - v) / (d - c));
+const P = (a) => pos.get(a.id) || a;
+// Labels claim a box each frame; a label that would overlap one already drawn is skipped.
+let boxes = [];
+function label(t, x, y, px, col, al, w) {
+  if (al <= 0.02) return false;
+  ctx.font = (w || 400) + ' ' + px + 'px system-ui,sans-serif';
+  const tw = ctx.measureText(t).width;
+  const bx = { x1: x - tw / 2 - 3, x2: x + tw / 2 + 3, y1: y - px / 2 - 2, y2: y + px / 2 + 2 };
+  if (boxes.some((o) => !(bx.x2 < o.x1 || bx.x1 > o.x2 || bx.y2 < o.y1 || bx.y1 > o.y2))) return false;
+  boxes.push(bx);
+  ctx.globalAlpha = al; ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y); ctx.globalAlpha = 1;
+  return true;
+}
+function size() {
+  const r = window.devicePixelRatio || 1;
+  const app = $('app');
+  app.classList.toggle('narrow', app.clientWidth < 600);
+  app.classList.toggle('compact', app.clientWidth < 760);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W * r; cv.height = H * r;
+  ctx.setTransform(r, 0, 0, r, 0, 0);
+  draw();
+}
+const grouped = () => D && D.session.groupedBy;
+const encReady = () => D && !running();
+function enc(a) {
+  const szi = sizeBy === 'revenue' ? (a.rb == null ? 1 : a.rb) : a.t;
+  const br = sizeBy === 'revenue' ? a.t : (a.rb == null ? 1 : a.rb);
+  return { r: RAD[szi] * Math.min(1 + Math.log2(Math.max(k, 1)) * 0.45, 2.2) * 0.8, br, hollow: a.r == null };
+}
+function near(list, x, y) { let b = null, d = 1e9; for (const o of list) { const dd = Math.hypot(o.x - x, o.y - y); if (dd < d) { d = dd; b = o; } } return b; }
+function pickFocus() {
+  if (!D) return null;
+  if (sel) return resolve(sel);
+  const x = cx - panelOff(), y = cy;
+  if (k < 1.7 || !grouped() || !D.segments.length) return resolve({ kind: 'category' });
+  if (k < 3.6 || !D.keywords.length) return resolve({ kind: 'segment', id: near(D.segments, x, y).id });
+  if (k < 6) return resolve({ kind: 'keyword', id: near(D.keywords, x, y).id });
+  const a = near(apps().map((a) => ({ ...P(a), id: a.id })), x, y);
+  return resolve(a ? { kind: 'app', id: a.id } : { kind: 'category' });
+}
+function resolve(f) {
+  if (!f) return null;
+  if (f.kind === 'category') return { kind: 'category', name: D.session.name };
+  if (f.kind === 'segment') { const s = segById(f.id); return s && { kind: 'segment', id: s.id, name: s.name, x: s.x, y: s.y, o: s }; }
+  if (f.kind === 'keyword') { const s = kwById(f.id); return s && { kind: 'keyword', id: s.id, name: s.name, x: s.x, y: s.y, o: s }; }
+  if (f.kind === 'opening') { const s = D.openings.find((o) => o.id === f.id); return s && { kind: 'opening', id: s.id, name: s.name, x: s.x, y: s.y, o: s }; }
+  const a = apps().find((x) => x.id === f.id); if (!a) return null; const p = P(a); return { kind: 'app', id: a.id, name: a.n, x: p.x, y: p.y, o: a };
+}
+function draw() {
+  ctx.fillStyle = '#070B09'; ctx.fillRect(0, 0, W, H);
+  if (!D) return;
+  focus = pickFocus() || { kind: 'category', name: D.session.name };
+  if (focus.kind !== 'category' && tourStep < 0 && focus.x != null) {
+    const R = focus.kind === 'segment' ? (14 + 5.5 * Math.sqrt(focus.o.stats.apps)) * k * base() : focus.kind === 'keyword' ? 30 * k * base() : focus.kind === 'opening' ? 14 : enc(focus.o).r + 7;
+    ctx.beginPath(); ctx.arc(sx(focus.x), sy(focus.y), R, 0, 7);
+    ctx.strokeStyle = '#EF9F27'; ctx.globalAlpha = 0.55; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  const act = hl || lens, lf = act ? LENS[act].f : null, ready = encReady();
+  for (const a of apps()) {
+    const p = P(a), X = sx(p.x), Y = sy(p.y);
+    if (X < -12 || X > W + 12 || Y < -12 || Y > H + 12) continue;
+    if (!ready) { ctx.beginPath(); ctx.arc(X, Y, 1.8 * Math.min(1 + Math.log2(Math.max(k, 1)) * 0.5, 3), 0, 7); ctx.fillStyle = '#4E7A6C'; ctx.fill(); continue; }
+    const e = enc(a), dim = lf && !lf(a);
+    ctx.globalAlpha = dim ? 0.1 : BA[e.br];
+    ctx.beginPath(); ctx.arc(X, Y, e.r, 0, 7);
+    if (e.hollow) { ctx.strokeStyle = RING[e.br]; ctx.lineWidth = 1.3; ctx.stroke(); } else { ctx.fillStyle = BR[e.br]; ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+  boxes = [];
+  if (ready && !act) for (const o of D.openings) {
+    const X = sx(o.x), Y = sy(o.y); if (X < -200 || X > W + 200 || Y < -50 || Y > H + 50) continue;
+    ctx.beginPath(); ctx.arc(X, Y, 7, 0, 7); ctx.fillStyle = '#EF9F27'; ctx.fill();
+    ctx.font = '600 12px system-ui,sans-serif'; const tw = ctx.measureText(o.name).width + 18, bx = X - tw / 2, by = Y + 12;
+    ctx.fillStyle = '#2E2104'; ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(bx, by, tw, 22, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#FAC775'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.name, X, by + 11);
+    boxes.push({ x1: bx, x2: bx + tw, y1: by, y2: by + 22 });
+  }
+  if (grouped()) {
+    const a1 = fade(k, 0, 0, 1.7, 2.4), a2 = fade(k, 1.5, 2.2, 4, 5);
+    const segs = [...D.segments].sort((a, b) => b.stats.apps - a.stats.apps);
+    for (const s of segs) { const yy = sy(s.y) - (14 + 5.5 * Math.sqrt(s.stats.apps)) * k * base() - 16; if (label(s.name, sx(s.x), yy, 15, '#E1F5EE', a1, 600)) label(s.stats.apps + ' apps' + (s.stats.crowded ? ' · crowded' : ''), sx(s.x), yy + 16, 11.5, s.stats.crowded ? '#F0997B' : '#9FE1CB', a1); }
+    for (const kw of D.keywords) label(kw.name, sx(kw.x), sy(kw.y) - 22 * base() * Math.min(k, 3), 12.5, '#9FE1CB', a2, 600);
+  }
+  const a3 = fade(k, 3.8, 4.8, 99, 100);
+  if (a3 > 0) for (const a of [...apps()].sort((x, y) => (y.u || 0) - (x.u || 0))) { if (k < 6 && a.t < 2 && a.rb !== 2) continue; const p = P(a), X = sx(p.x), Y = sy(p.y); if (X < 0 || X > W || Y < 0 || Y > H) continue; label(a.n.length > 26 ? a.n.slice(0, 25) + '…' : a.n, X, Y + 15, 11.5, '#C9E9DD', a3 * (lf && !lf(a) ? 0.2 : 1)); }
+  if (tourStep >= 0 && tourT) { const p = P(tourT); ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 18, 0, 7); ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
+  const key = mode + '|' + focus.kind + '|' + (focus.id || '') + '|' + (D.session.status) + '|' + D.apps.length;
+  if (key !== lastKey) { if (!key.startsWith(lastKey.split('|').slice(0, 3).join('|'))) { ask = false; askState = null; q = ''; } lastKey = key; panel(); pushContext(); }
+}
+function fly(tx, ty, tk, off) {
+  const k0 = k, x0 = cx, y0 = cy, t0 = performance.now(); cancelAnimationFrame(anim);
+  const tcx = tx + (off === false ? 0 : 130 / (tk * base()) * (document.getElementById('app').classList.contains('narrow') ? 0 : 1));
+  const step = (t) => { let u = Math.min(1, (t - t0) / 700); u = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; k = k0 * Math.pow(tk / k0, u); cx = x0 + (tcx - x0) * u; cy = y0 + (ty - y0) * u; draw(); if (u < 1) anim = requestAnimationFrame(step); };
+  anim = requestAnimationFrame(step);
+}
+// The whole map, shifted left so the side panel doesn't cover the right-hand segments.
+function homeCamera(animate) {
+  const narrow = $('app').classList.contains('narrow');
+  W = cv.clientWidth || W; H = cv.clientHeight || H;
+  const b = W / 1000 || 1;
+  const list = apps().map(P);
+  let x0 = 150, x1 = 850, y0 = 100, y1 = 500;
+  if (list.length) { x0 = Math.min(...list.map((p) => p.x)) - 110; x1 = Math.max(...list.map((p) => p.x)) + 110; y0 = Math.min(...list.map((p) => p.y)) - 80; y1 = Math.max(...list.map((p) => p.y)) + 50; }
+  // Fit into the part of the canvas no card covers: right of the progress card, left of the panel.
+  const L = !narrow && pcShow && D && running() ? 330 : 0, R = narrow ? W : W - 290;
+  const availW = Math.max(R - L, 120), availH = (H - 30) || 1;
+  const tk = Math.max(0.5, Math.min(3, availW / ((x1 - x0) * b), availH / ((y1 - y0) * b)));
+  const tx = (x0 + x1) / 2 - ((L + R) / 2 - W / 2) / (tk * b), ty = (y0 + y1) / 2;
+  if (animate) return fly(tx, ty, tk, false);
+  k = tk; cx = tx; cy = ty;
+}
+function zoomAt(f, px, py) { userMoved = true; const wx = (px - W / 2) / (k * base()) + cx, wy = (py - H / 2) / (k * base()) + cy; k = Math.max(0.6, Math.min(14, k * f)); cx = wx - (px - W / 2) / (k * base()); cy = wy - (py - H / 2) / (k * base()); draw(); saveView(); }
+
+// ------------------------------------------------------------------ context for Claude
+function pathOf(f) {
+  const root = D.session.name;
+  if (f.kind === 'category') return [root];
+  if (f.kind === 'segment') return [root, f.name];
+  if (f.kind === 'keyword') return [root, (segById(f.o.seg) || {}).name, f.name];
+  if (f.kind === 'app') return [root, (segById(f.o.seg) || {}).name, (kwById(f.o.kw) || {}).name, f.name].filter(Boolean);
+  return [root, 'Opening', f.name];
+}
+function info(f) {
+  const all = apps();
+  if (f.kind === 'category') {
+    const plats = new Set(all.map((a) => a.s)).size, reviews = all.reduce((t, a) => t + (a.rv || 0), 0);
+    return { m: [['Apps found', all.length + ' of ' + D.session.target, 'apps'], ['Platforms', plats, 'platforms'], ['Segments', grouped() ? D.segments.length + (D.session.groupedBy === 'claude' ? ' · AI' : ' · by store') : 'after crawl', 'segments'], ['Reviews read', reviews, 'reviews']], ins: running() ? 'The crawl is running; the map fills in as apps arrive.' : (D.session.groupedBy === 'claude' ? 'Zoom in or select a segment to see what drives it.' : 'Claude has not grouped these apps yet.') };
+  }
+  if (f.kind === 'segment') { const st = f.o.stats; const top = Object.entries(st.platforms).sort((a, b) => b[1] - a[1]).slice(0, 2).map((e) => D.storeLabels[e[0]] + ' ' + e[1]).join(', '); return { m: [['Apps found', st.apps, 'apps', { seg: f.id }], ['Crowded', st.crowded ? 'Yes' : 'No', 'segments'], ['Revenue known', st.revenueKnown + ' of ' + st.apps, 'apps', { seg: f.id, sort: 'r' }], ['Mostly on', top || '—', 'platforms', { seg: f.id }]], ins: f.o.insight }; }
+  if (f.kind === 'keyword') { const l = all.filter((a) => a.kw === f.id); const lead = [...l].sort((a, b) => (b.u || 0) - (a.u || 0)).slice(0, 2).map((a) => a.n).join(', '); return { m: [['Apps found', l.length, 'apps', { kw: f.id }], ['Money gaps', l.filter(LENS.gaps.f).length, 'apps', { kw: f.id, lens: 'gaps' }], ['Segment', (segById(f.o.seg) || {}).name || '—', 'segments'], ['Leaders', lead || '—', 'apps', { kw: f.id, sort: 'u' }]], ins: f.o.insight }; }
+  if (f.kind === 'app') { const a = f.o; return { m: [['Est. revenue', a.rl, 'app', { app: a }], ['Users', (a.ul || 'n/a') + ' · ' + TIER[a.t], 'app', { app: a }], ['Price', a.pr || '—', 'app', { app: a }], ['Platform', D.storeLabels[a.s], 'app', { app: a }]], ins: a.c ? 'Top complaint: ' + a.c : (a.tg ? 'In US top grossing at #' + a.tg + '.' : (a.cat || '')) }; }
+  return { m: [], ins: f.o.insight + (f.o.evidence && f.o.evidence.length ? ' Evidence: ' + f.o.evidence.join(', ') + '.' : '') };
+}
+function contextOf(f) {
+  const i = info(f);
+  const near = f.kind === 'segment' ? D.segments.filter((x) => x.id !== f.id).map((x) => x.name).slice(0, 4) : f.kind === 'keyword' ? D.keywords.filter((x) => x.seg === f.o.seg && x.id !== f.id).map((x) => x.name) : f.kind === 'app' ? apps().filter((x) => x.kw && x.kw === f.o.kw && x.id !== f.id).sort((a, b) => (b.u || 0) - (a.u || 0)).slice(0, 5).map((x) => x.n) : [];
+  const c = { session: D.session.id, apps_investigated: D.session.target, focused_plan: D.session.plan ? D.session.plan.segments.map((x) => x.name) : null, size_by: sizeBy, lens, focus: { type: f.kind, id: f.id || null, name: f.name, path: pathOf(f) }, metrics: Object.fromEntries(i.m.map((m) => [m[0].toLowerCase().replace(/[ .]/g, '_'), m[1]])), insight: i.ins, nearby: near, data_as_of: D.session.updated.slice(0, 10) };
+  if (f.kind === 'app') Object.assign(c.focus, { store: D.storeLabels[f.o.s], url: f.o.url, revenue_method: f.o.rm || null });
+  return c;
+}
+let ctxT = null;
+function pushContext() {
+  if (!inHost || !D || !focus) return;
+  const key = D.session.id + '|' + focus.kind + '|' + (focus.id || '') + '|' + sizeBy + '|' + lens;
+  if (key === lastCtx) return; // only when what the user looks at changes
+  lastCtx = key;
+  clearTimeout(ctxT); ctxT = setTimeout(() => bridge.context('App Scout map (session ' + D.session.id + ') — the user is looking at: ' + JSON.stringify(contextOf(focus))), 900); }
+let viewT = null;
+function saveView() { if (!D) return; clearTimeout(viewT); viewT = setTimeout(() => act('view', { session: D.session.id, state: { sizeBy, lens, focus: focus ? { type: focus.kind, id: focus.id || null, name: focus.name } : null, camera: [Math.round(cx), Math.round(cy), Math.round(k * 100) / 100] } }).catch(() => {}), 1200); }
+
+// ------------------------------------------------------------------ right panel
+let MREF = [];
+function sugg(f) { return f.kind === 'app' ? ['Why do users complain?', 'How does it make money?', 'Who are its rivals?'] : f.kind === 'opening' ? ['Is this worth building?', 'What would v1 need?', 'Who would pay?'] : f.kind === 'category' ? ['Where is the money?', 'What is rising?', 'Regroup the segments'] : ['Why is this growing?', 'Who pays here?', 'Split this segment']; }
+function answersFor(f) { return (D.questions || []).filter((x) => x.context && x.context.focus && x.context.focus.name === f.name && x.answer).slice(-1); }
+function vFocus() {
+  if (!D) return '<p class="t">App Scout</p><p class="i">Start a scout, or ask Claude to plan research from your idea.</p>';
+  const f = focus || { kind: 'category', name: D.session.name };
+  const i = info(f), p = pathOf(f);
+  MREF = i.m;
+  let h = (needsGrouping() && f.kind === 'category' ? groupCallout() : '') + '<p class="t">' + esc(f.name) + '</p><p class="p">' + esc(p.slice(0, -1).join(' › ') || (D.session.plan ? 'Focused scout' : 'Category overview')) + (sel ? ' · selected' : '') + '</p>';
+  if (i.m.length) h += '<div class="g">' + i.m.map((m, j) => '<button class="mb" data-m="' + j + '" title="Open as a table"><span>' + esc(m[0]) + '<svg class="i" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 5h16v14H4zM4 10h16M10 5v14"/></svg></span><b>' + esc(m[1]) + '</b></button>').join('') + '</div>';
+  if (i.ins) h += '<p class="i">' + esc(i.ins) + '</p>';
+  if (f.kind === 'app' && f.o.url) h += '<p class="i"><a href="' + esc(f.o.url) + '" data-link="' + esc(f.o.url) + '">Open the store listing</a></p>';
+  for (const a of answersFor(f)) h += '<div class="qa"><b>Q:</b> ' + esc(a.text) + '<br><b>Claude:</b> ' + esc(a.answer.slice(0, 600)) + (a.answer.length > 600 ? '…' : '') + '</div>';
+  if (askState === 'sent') h += '<p style="color:var(--ok);margin:8px 0 0" role="status">Sent to Claude with this context.</p><div class="acts"><button data-a="done">Done</button></div>';
+  else if (askState && askState.copy) h += '<p class="i" style="margin-top:8px">The chat isn’t connected to this page right now. Paste this into Claude:</p><pre>' + esc(askState.copy) + '</pre><div class="acts"><button data-a="done">Done</button><button class="pr" data-a="copy">Copy</button></div>';
+  else if (ask) h += '<div>' + sugg(f).map((t) => '<button class="chip sm' + (q === t ? ' on' : '') + '" data-s="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div><label class="sr-only" for="qi">Your question</label><input id="qi" placeholder="Your question" value="' + esc(q) + '"><p class="err" id="qe"></p><details><summary>What Claude receives</summary><pre id="cx">' + esc(JSON.stringify(contextOf(f), null, 1)) + '</pre></details><div class="acts"><button data-a="cancel">Cancel</button><button class="pr" data-a="send">Send to Claude</button></div>';
+  else h += '<div class="acts">' + (sel ? '<button data-a="clear">Clear</button>' : '') + '<button class="pr" data-a="ask">Ask Claude</button></div>';
+  return h;
+}
+function vPlan() {
+  if (!plan) return '<p class="t">Plan from idea</p>';
+  const g = (label, key, opts) => '<p class="k">' + label + '</p><div>' + opts.map((o) => '<button class="chip sm' + (plan.selected[key].includes(o) ? ' on' : '') + '" aria-pressed="' + plan.selected[key].includes(o) + '" data-c="' + key + '|' + esc(o) + '">' + esc(o) + '</button>').join('') + '</div>';
+  const segs = plan.segments.filter((x) => plan.selected.segments.includes(x.name));
+  return '<p class="t">Research plan</p><p class="p">"' + esc(plan.idea) + '"</p>' + (plan.customers.length ? g('Customers', 'customers', plan.customers) : '') + (plan.forms.length ? g('Product forms', 'forms', plan.forms) : '') + g('Segments to scout', 'segments', plan.segments.map((x) => x.name)) +
+    '<p class="i" style="margin-top:8px">' + segs.length + ' segments · ' + segs.reduce((t, x) => t + x.phrases.length, 0) + ' searches · ' + plan.apps + ' apps</p><p class="err" id="pe"></p><div class="acts"><button data-a="closeplan">Cancel</button><button class="pr" data-a="startplan">Start focused scout</button></div>';
+}
+function vIdea() {
+  return '<p class="t">Plan from idea</p><p class="p">Claude turns your idea into what to scout</p><label for="idea" class="k" style="display:block">Describe your idea</label><textarea id="idea" rows="4" placeholder="A meeting notes app for Vietnamese small teams"></textarea><p class="err" id="ie"></p><div class="acts"><button data-a="closeplan">Cancel</button><button class="pr" data-a="mkplan">Make plan</button></div>';
+}
+function vSessions() {
+  if (!sessionsList) return '<p class="t">Your sessions</p><p class="i">Loading…</p>';
+  if (!sessionsList.length) return '<p class="t">Your sessions</p><p class="i">No saved sessions yet.</p><div class="acts"><button data-a="closeses">Close</button></div>';
+  return '<p class="t">Your sessions</p><p class="p">Saved after every step</p>' + sessionsList.slice(0, 12).map((x) => '<div class="sr"><div style="flex:1;min-width:0">' + esc(x.name) + '<div style="color:var(--mut);font-size:11px">' + (x.focused ? 'Focused · ' : '') + x.apps + ' apps · ' + esc(x.status) + ' · ' + esc(x.updated.slice(0, 10)) + '</div></div><button class="ic sm" data-x="' + esc(x.id) + '" aria-label="Export ' + esc(x.name) + '" title="Export"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></button><button class="sm" data-r="' + esc(x.id) + '">Continue</button></div>').join('') + '<div class="acts"><button data-a="closeses">Close</button></div>';
+}
+let exFor = null;
+function vExport() {
+  const EXP = [['apps', 'Apps and their store data'], ['platforms', 'Per-platform counts'], ['reviews', 'Review complaints'], ['segments', 'Segments and keywords'], ['openings', 'Openings with evidence'], ['questions', 'Your questions and Claude’s answers']];
+  return '<p class="t">Export session</p><p class="p">' + esc(exFor ? exFor : D ? D.session.name : '') + '</p><p class="k">Include</p>' + EXP.map((e) => '<label class="ck"><input type="checkbox" data-e="' + e[0] + '"' + (exSel.has(e[0]) ? ' checked' : '') + '> ' + esc(e[1]) + '</label>').join('') +
+    '<p class="k">Format</p><div>' + [['md', 'Markdown report'], ['csv', 'CSV (apps)'], ['json', 'JSON (everything)']].map((f) => '<button class="chip sm' + (exFmt === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>').join('') + '</div><p class="err" id="xe"></p><div class="acts"><button data-a="closeexp">Cancel</button><button class="pr" data-a="doexp">Export</button></div>';
+}
+function panel() {
+  const pn = $('pn');
+  pn.innerHTML = mode === 'plan' ? vPlan() : mode === 'idea' ? vIdea() : mode === 'sessions' ? vSessions() : mode === 'export' ? vExport() : vFocus();
+  const qi = $('qi'); if (qi) qi.addEventListener('input', () => { q = qi.value; $('qe').textContent = ''; const c = $('cx'); if (c) c.textContent = JSON.stringify(contextOf(focus), null, 1); });
+  progress(); legend(); banner(); status(); empty();
+}
+
+// ------------------------------------------------------------------ progress card, banner, status
+function status() {
+  const el = $('stat');
+  if (!D) { el.textContent = ''; return; }
+  if (running()) { el.textContent = 'Scouting · ' + D.progress.pct + '%'; return; }
+  if (D.session.status === 'failed') { el.textContent = 'Scout failed'; return; }
+  el.textContent = D.apps.length + ' apps · ' + new Set(D.apps.map((a) => a.s)).size + ' platforms · ' + (grouped() ? D.segments.length + ' segments' : 'not grouped');
+}
+function progress() {
+  const pc = $('pc');
+  if (!D || !pcShow) { pc.classList.add('gone'); return; }
+  pc.classList.remove('gone');
+  const pr = D.progress, done = !running();
+  const rows = Object.entries(pr.perStore);
+  const tot = rows.reduce((t, [, v]) => ({ a: t.a + v.apps, d: t.d + v.details, r: t.r + v.reviews }), { a: 0, d: 0, r: 0 });
+  let h = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>' + (done ? (D.session.status === 'failed' ? 'Scout failed' : 'Scout finished') : (D.session.plan ? 'Focused scout' : 'Scouting')) + ' · ' + D.session.target + ' apps</b><span style="color:var(--mut)">' + (done ? 'saved' : pr.pct + '%') + '</span></div>';
+  h += done ? '<div style="height:8px"></div>' : '<div class="pg" role="progressbar" aria-valuenow="' + pr.pct + '" aria-valuemin="0" aria-valuemax="100"><div style="width:' + pr.pct + '%"></div></div>';
+  h += '<div class="tb"><span></span><span class="h">Platform</span><span class="h n">Apps</span><span class="h n">Details</span><span class="h n">Reviews</span>';
+  for (const [st, v] of rows) {
+    const col = v.slowed ? 'var(--acc)' : v.status === 'running' ? 'var(--acc)' : v.status === 'done' ? 'var(--ok)' : v.status === 'failed' ? 'var(--bad)' : 'var(--edge)';
+    h += '<span class="dot" style="background:' + col + '" title="' + esc(v.status) + '"></span><span>' + esc(D.storeLabels[st]) + (v.slowed ? ' <span style="color:var(--acc2);font-size:10.5px">slowed ' + v.slowed + 's</span>' : v.status === 'failed' ? ' <span style="color:var(--bad);font-size:10.5px" title="' + esc(v.error || '') + '">failed</span>' : '') + '</span><span class="n">' + v.apps + '</span><span class="n">' + v.details + '</span><span class="n">' + (st === 'appstore' ? v.reviews : '—') + '</span>';
+  }
+  h += '<span></span><span style="color:var(--mut)">Total</span><span class="n">' + tot.a + '</span><span class="n">' + tot.d + '</span><span class="n">' + tot.r + '</span></div>';
+  h += '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:6px">';
+  if (pr.searches.total) h += '<div class="ln"><span style="flex:1">Keyword searches</span><span>' + pr.searches.done + ' of ' + pr.searches.total + '</span></div>';
+  h += '<div class="ln"><span style="flex:1">Pricing pages read</span><span>' + pr.pricingPages + '</span></div>';
+  h += '<div class="ln"><span style="flex:1">Segments (AI)</span><span>' + (running() ? 'after the crawl' : D.session.groupedBy === 'claude' ? D.segments.length + ' segments, ' + D.keywords.length + ' keywords' : 'waiting for Claude') + '</span></div></div>';
+  if (!done) h += '<p style="color:var(--mut);margin:8px 0 0">Now: ' + esc(pr.step) + '</p><div class="acts"><button data-a="stop">Stop</button></div>';
+  else h += (D.session.error ? '<p class="err">' + esc(D.session.error) + '</p>' : '') + '<div class="acts"><button data-a="hidepc">Close</button></div>';
+  pc.innerHTML = h;
+}
+function banner() { $('banner').style.display = 'none'; }
+const needsGrouping = () => D && !running() && D.session.status === 'grouping' && D.session.groupedBy !== 'claude';
+function groupCallout() {
+  return '<div style="border:0.5px solid var(--acc);border-radius:8px;padding:8px;margin:0 0 10px"><b>Claude hasn’t grouped these apps yet</b><p class="i" style="margin:4px 0 0">They’re grouped by store category for now. Claude names the real segments and openings.</p><div class="acts" style="margin-top:6px"><button class="pr sm" data-a="group">Ask Claude to group</button></div></div>';
+}
+function empty() {
+  const e = $('empty');
+  if (D && D.apps.length) { e.textContent = ''; return; }
+  e.textContent = mode === 'plan' ? 'Adjust the plan, then start the focused scout. The map fills in as apps arrive.' : running() ? 'Collecting apps…' : D && D.session.status === 'failed' ? 'The scout failed. Try again, or a broader topic.' : 'Pick how many apps to investigate and press Scout, or plan from your idea.';
+}
+
+// ------------------------------------------------------------------ legend and tour
+function dotSvg(r, fill, stroke) { return '<svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="' + r + '" fill="' + (fill || 'none') + '" stroke="' + (stroke || 'none') + '" stroke-width="1.3"/></svg>'; }
+function legend() {
+  const lg = $('lg');
+  if (!D || !D.apps.length || running()) { lg.style.display = 'none'; return; }
+  lg.style.display = '';
+  if (!lgOpen) { lg.className = 'card lg mini'; lg.innerHTML = '<button class="ic sm" data-l="open" aria-label="How to read the map" title="How to read the map" style="width:28px">?</button>'; return; }
+  lg.className = 'card lg';
+  const rev = sizeBy === 'revenue';
+  lg.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><b>How to read the map</b><button class="ic sm" data-l="close" aria-label="Hide" style="width:24px">×</button></div>' +
+    '<div class="lr" data-h="leaders">' + dotSvg(2, '#5DCAA5') + dotSvg(3.4, '#5DCAA5') + dotSvg(5.4, '#5DCAA5') + '<span>Size: ' + (rev ? 'est. revenue / month' : 'users') + '</span></div>' +
+    '<div class="lr" data-h="gaps">' + dotSvg(3, BR[0]) + dotSvg(3, BR[1]) + dotSvg(3, BR[2]) + '<span>Brightness: ' + (rev ? 'users' : 'est. revenue') + '</span></div>' +
+    '<div class="lr" data-h="unknown">' + dotSvg(3.4, null, '#8FB3D9') + '<span>Hollow: revenue unknown</span></div>' +
+    '<div class="lr"><svg width="48" height="16" aria-hidden="true"><circle cx="18" cy="8" r="2.5" fill="#5DCAA5"/><circle cx="26" cy="7" r="2.5" fill="#5DCAA5"/><circle cx="22" cy="12" r="2.5" fill="#5DCAA5"/></svg><span>Close dots: similar apps</span></div>' +
+    '<p class="k">Size by</p><div><button class="sm' + (rev ? ' on' : '') + '" data-z="revenue">Revenue</button> <button class="sm' + (!rev ? ' on' : '') + '" data-z="users">Users</button></div>' +
+    '<p class="k">Lenses</p><div style="display:flex;flex-wrap:wrap;gap:4px">' + Object.keys(LENS).map((x) => '<button class="sm' + (lens === x ? ' on' : '') + '" data-lens="' + x + '" aria-pressed="' + (lens === x) + '">' + LENS[x].label + ' · ' + apps().filter(LENS[x].f).length + '</button>').join('') + '</div>' +
+    '<p style="margin:8px 0 0;font-size:11px"><span data-l="tour" role="button" tabindex="0" style="color:var(--ok);cursor:pointer">Show me with my data</span></p>';
+}
+const TOUR = [
+  ['Big and bright', 'Earns a lot and has many users. A leader.', () => [...apps()].filter((a) => a.rb === 2 && a.t === 2).sort((a, b) => b.r - a.r)[0] || [...apps()].filter((a) => a.r != null).sort((a, b) => b.r - a.r)[0]],
+  ['Small but bright', 'Many users, little money. These are often openings.', () => apps().filter(LENS.gaps.f).sort((a, b) => (b.u || 0) - (a.u || 0))[0]],
+  ['Hollow ring', 'We couldn’t find how this app earns. Ask Claude to dig deeper.', () => apps().filter((a) => a.r == null).sort((a, b) => b.t - a.t || (b.u || 0) - (a.u || 0))[0]],
+];
+function startTour() { if (!D || !D.apps.length || running()) return; lgOpen = true; tourStep = 0; showTour(); }
+function showTour() {
+  const tour = $('tour');
+  if (tourStep < 0 || tourStep >= TOUR.length) {
+    tourStep = -1; tourT = null; sel = null; lastKey = ''; tour.style.display = 'none'; lgOpen = false; legend(); draw();
+    if (D && !D.prefs.tourDone) { D.prefs.tourDone = true; act('prefs', { patch: { tourDone: true } }).catch(() => {}); }
+    return;
+  }
+  const t = TOUR[tourStep]; tourT = t[2]();
+  if (!tourT) { tourStep++; return showTour(); }
+  sel = { kind: 'app', id: tourT.id }; mode = 'focus'; lastKey = '';
+  const p = P(tourT); fly(p.x, p.y, 5);
+  tour.style.display = 'block';
+  tour.innerHTML = '<p class="k" style="margin:0 0 4px">How to read the map · ' + (tourStep + 1) + ' of ' + TOUR.length + '</p><b style="font-size:14px">' + t[0] + '</b> <span style="color:var(--mut)">· ' + esc(tourT.n) + '</span><p style="margin:6px 0 0;color:var(--tx2)">' + t[1] + '</p><div class="acts"><button data-t="skip">Skip</button><button class="pr" data-t="next">' + (tourStep === TOUR.length - 1 ? 'Done' : 'Next') + '</button></div>';
+  legend();
+  tour.querySelector('[data-t="next"]').focus({ preventScroll: true });
+}
+
+// ------------------------------------------------------------------ detail tables
+const COLS = {
+  apps: [['App', 'n'], ['Platform', 'sl'], ['Segment', 'segName'], ['Users', 'u'], ['Est. revenue', 'r'], ['Price', 'pr']],
+  platforms: [['Platform', 'p'], ['Apps', 'n'], ['Details', 'det'], ['Reviews', 'rev'], ['Revenue known', 'known'], ['Users counted as', 'unit']],
+  segments: [['Segment', 'name'], ['Apps', 'n'], ['Crowded', 'crowded'], ['Revenue known', 'known'], ['Est. revenue', 'sum'], ['Money gaps', 'gaps']],
+  reviews: [['App', 'n'], ['Platform', 'sl'], ['Reviews read', 'rv'], ['Top complaint', 'c']],
+  app: [['Field', 'f'], ['Value', 'v'], ['Source · Conf', 's']],
+};
+const UNIT = { appstore: 'ratings', play: 'installs', chrome: 'users', workspace: 'installs', github: 'stars' };
+function rowsFor(st) {
+  const sc = st.scope || {};
+  let list = apps();
+  if (sc.seg) list = list.filter((a) => a.seg === sc.seg);
+  if (sc.kw) list = list.filter((a) => a.kw === sc.kw);
+  if (sc.lens) list = list.filter(LENS[sc.lens].f);
+  const segName = (a) => (segById(a.seg) || {}).name || '';
+  if (st.kind === 'apps') return list.map((a) => ({ _a: a, n: a.n, sl: D.storeLabels[a.s], segName: segName(a), u: a.u ?? -1, uT: (a.ul || 'n/a') + ' · ' + TIER[a.t], r: a.r ?? -1, rT: a.rl, pr: a.pr || '—' }));
+  if (st.kind === 'reviews') return list.filter((a) => a.rv > 0).map((a) => ({ _a: a, n: a.n, sl: D.storeLabels[a.s], rv: a.rv, c: a.c || '—' }));
+  if (st.kind === 'platforms') { const out = []; for (const [k2, v] of Object.entries(D.progress.perStore)) { const l = list.filter((a) => a.s === k2); if (!l.length && sc.seg) continue; out.push({ p: D.storeLabels[k2], n: l.length, det: sc.seg ? l.length : v.details, rev: k2 === 'appstore' ? l.reduce((t, a) => t + a.rv, 0) : -1, revT: k2 === 'appstore' ? undefined : '—', known: l.filter((a) => a.r != null).length, knownT: l.filter((a) => a.r != null).length + ' of ' + l.length, unit: UNIT[k2] }); } return out; }
+  if (st.kind === 'segments') return D.segments.map((s) => ({ _s: s, name: s.name, n: s.stats.apps, crowded: s.stats.crowded ? 'Yes' : 'No', known: s.stats.revenueKnown, knownT: s.stats.revenueKnown + ' of ' + s.stats.apps, sum: s.stats.revenueSum, sumT: s.stats.revenueSum ? '$' + fmt(s.stats.revenueSum) + '/mo est.' : 'Unknown', gaps: s.stats.moneyGaps }));
+  const a = sc.app;
+  return [['Platform', D.storeLabels[a.s], D.storeLabels[a.s] + ' · H'], ['Developer', a.dev || '—', D.storeLabels[a.s] + ' · H'], ['Users', a.ul || 'n/a', D.storeLabels[a.s] + ' · H'], ['Users rank', TIER[a.t] + ' within ' + D.storeLabels[a.s], 'computed'], ['Rating', a.rt != null ? a.rt.toFixed(1) + '★' : '—', D.storeLabels[a.s] + ' · H'], ['Est. revenue', a.rl, a.rm ? a.rm + ' · ' + (a.rc || 'L') : 'no signal found'], ['Price', a.pr || '—', 'listing · H'], ['Top grossing', a.tg ? '#' + a.tg + ' (US)' : '—', 'App Store chart · H'], ['Top complaint', a.c || '—', a.c ? 'recent 1–2★ reviews · M' : '—'], ['Segment', [(segById(a.seg) || {}).name, (kwById(a.kw) || {}).name].filter(Boolean).join(' › ') || '—', D.session.groupedBy === 'claude' ? 'Claude' : 'store category']].map((r) => ({ f: r[0], v: r[1], s: r[2] }));
+}
+function openModal(kind, scope, title) { mState = { kind, scope, title, sort: scope && scope.sort ? [scope.sort, -1] : null }; renderModal(); }
+function renderModal() {
+  const modal = $('modal');
+  if (!mState) { modal.style.display = 'none'; return; }
+  const cols = COLS[mState.kind]; let rows = rowsFor(mState);
+  if (mState.sort) { const [key, dir] = mState.sort; rows.sort((a, b) => { const x = a[key], y = b[key]; return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * dir; }); }
+  const disp = (r, c) => r[c + 'T'] !== undefined ? r[c + 'T'] : c === 'u' ? r.uT : r[c];
+  const click = ['apps', 'reviews', 'segments'].includes(mState.kind);
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="mc"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><b id="mtitle" style="font-size:15px">' + esc(mState.title) + '</b><div style="color:var(--mut);font-size:11px">' + rows.length + ' rows · ' + (click ? 'select a row to show it on the map · ' : '') + 'select a column to sort</div></div><button class="ic" data-mx="close" aria-label="Close">×</button></div><div class="sc"><table><thead><tr>' + cols.map((c) => '<th data-sort="' + c[1] + '">' + c[0] + (mState.sort && mState.sort[0] === c[1] ? (mState.sort[1] > 0 ? ' ↑' : ' ↓') : '') + '</th>').join('') + '</tr></thead><tbody>' + rows.map((r, i) => '<tr' + (click ? ' class="cl" data-row="' + i + '"' : '') + '>' + cols.map((c) => '<td>' + esc(disp(r, c[1])) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div></div>';
+  modal._rows = rows;
+  modal.querySelector('[data-mx]').focus({ preventScroll: true });
+}
+
+// ------------------------------------------------------------------ events
+function toast(t) { const el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(el._t); el._t = setTimeout(() => (el.style.display = 'none'), 3600); }
+function select(s) { sel = s; mode = 'focus'; lastKey = ''; draw(); saveView(); }
+
+$('modal').addEventListener('click', (e) => {
+  const modal = $('modal');
+  if (e.target === modal) { mState = null; return renderModal(); }
+  const b = e.target.closest('[data-mx],[data-sort],[data-row]'); if (!b) return;
+  if (b.dataset.mx) { mState = null; return renderModal(); }
+  if (b.dataset.sort) { const key = b.dataset.sort; mState.sort = mState.sort && mState.sort[0] === key ? [key, -mState.sort[1]] : [key, -1]; return renderModal(); }
+  const r = modal._rows[+b.dataset.row]; mState = null; renderModal();
+  if (r._a) { select({ kind: 'app', id: r._a.id }); const p = P(r._a); fly(p.x, p.y, Math.max(k, 6)); }
+  else if (r._s) { select({ kind: 'segment', id: r._s.id }); fly(r._s.x, r._s.y, 2.4); }
+});
+$('modal').addEventListener('keydown', (e) => { if (e.key === 'Escape') { mState = null; renderModal(); } });
+$('tour').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; tourStep = b.dataset.t === 'skip' ? TOUR.length : tourStep + 1; if (tourStep >= TOUR.length) homeCamera(true); showTour(); });
+$('lg').addEventListener('mouseover', (e) => { const r = e.target.closest('[data-h]'); const v = r ? r.dataset.h : null; if (v !== hl) { hl = v; draw(); } });
+$('lg').addEventListener('mouseleave', () => { if (hl) { hl = null; draw(); } });
+$('lg').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-l],[data-z],[data-lens]'); if (!b) return; const d = b.dataset;
+  if (d.l === 'open') lgOpen = true; else if (d.l === 'close') { lgOpen = false; hl = null; } else if (d.l === 'tour') return startTour();
+  else if (d.z) { sizeBy = d.z; saveView(); } else if (d.lens) { lens = lens === d.lens ? null : d.lens; saveView(); }
+  legend(); draw();
+});
+async function askToGroup() {
+  const out = await sendToClaude(`[App Scout · session ${D.session.id}] The crawl finished with ${D.apps.length} apps. Please group them: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings the data supports.`, null);
+  if (out === 'sent') toast('Asked Claude to group the apps');
+  else if (out && out.copy) { askState = out; ask = true; panel(); }
+}
+$('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); } });
+
+async function sendToClaude(text, question) {
+  if (inHost) { try { await bridge.say(text); return 'sent'; } catch (e) { toast('Claude didn’t accept the message: ' + e.message); return null; } }
+  if (question) return question.routed ? 'sent' : { copy: text };
+  try { const r = await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name } } }); return r.routed ? 'sent' : { copy: text }; } catch (e) { toast(e.message); return null; }
+}
+
+$('pn').addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (!c) return; c.checked ? exSel.add(c.dataset.e) : exSel.delete(c.dataset.e); const xe = $('xe'); if (xe) xe.textContent = ''; });
+$('pn').addEventListener('click', async (e) => {
+  const lnk = e.target.closest('[data-link]'); if (lnk) { e.preventDefault(); bridge.openLink(lnk.dataset.link).catch(() => {}); return; }
+  const b = e.target.closest('[data-a],[data-s],[data-c],[data-r],[data-x],[data-f],[data-m]'); if (!b) return; const d = b.dataset;
+  if (d.m !== undefined) { const m = MREF[+d.m]; const sc = m[3] || null; const ttl = sc && sc.app ? sc.app.n + ' · details' : m[2] === 'apps' ? (sc && sc.seg ? segById(sc.seg).name + ' · apps' : sc && sc.kw ? kwById(sc.kw).name + ' · apps' + (sc.lens ? ' · money gaps' : '') : 'Apps found') : m[2] === 'platforms' ? (sc && sc.seg ? segById(sc.seg).name + ' · platforms' : 'Platforms') : m[2] === 'segments' ? 'Segments' : 'Reviews read'; return openModal(m[2], sc, ttl); }
+  if (d.s) { q = d.s; return panel(); }
+  if (d.f) { exFmt = d.f; return panel(); }
+  if (d.c) { const [key, v] = d.c.split('|'); const arr = plan.selected[key]; const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); return panel(); }
+  if (d.x !== undefined) { exFor = d.x; mode = 'export'; return panel(); }
+  if (d.r !== undefined) { try { mode = 'focus'; setData(await act('snapshot', { session: d.r })); const c = D.viewState && D.viewState.camera; if (c) fly(c[0], c[1], c[2], false); else homeCamera(true); toast('Continued "' + D.session.name + '" where you left off'); } catch (err) { toast(err.message); } return; }
+  const a = d.a;
+  if (a === 'group') return askToGroup();
+  if (a === 'ask') { ask = true; askState = null; }
+  else if (a === 'cancel' || a === 'done') { ask = false; askState = null; q = ''; }
+  else if (a === 'copy') { try { await navigator.clipboard.writeText(askState.copy); toast('Copied'); } catch (err) { toast('Select the text and copy it'); } return; }
+  else if (a === 'clear') { sel = null; lastKey = ''; return draw(); }
+  else if (a === 'send') {
+    if (!q.trim()) { $('qe').textContent = 'Pick a suggestion or type a question first'; return; }
+    try {
+      const r = await act('question', { session: D.session.id, text: q.trim(), context: contextOf(focus) });
+      const out = await sendToClaude(askText(r.question), r);
+      if (out) askState = out;
+    } catch (err) { $('qe').textContent = err.message; return; }
+  }
+  else if (a === 'mkplan') {
+    const idea = ($('idea').value || '').trim();
+    if (!idea) { $('ie').textContent = 'Describe your idea first'; return; }
+    const out = await sendToClaude(`[App Scout] Plan market research for my idea: "${idea}". Break it into customers, product forms and segments to scout (each with store search phrases), then call plan_research so I can edit the plan.`, null);
+    if (out === 'sent') { mode = 'focus'; toast('Sent to Claude: it will show a plan'); }
+    else if (out && out.copy) { askState = out; mode = 'focus'; ask = true; }
+  }
+  else if (a === 'startplan') {
+    try { const snap = await act('start_plan', { plan, market: (D && D.session.market) || 'us' }); plan = null; mode = 'focus'; setData(snap); homeCamera(true); }
+    catch (err) { const pe = $('pe'); if (pe) pe.textContent = err.message; }
+    return;
+  }
+  else if (a === 'closeplan' || a === 'closeses' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') plan = null; }
+  else if (a === 'doexp') {
+    if (!exSel.size) { $('xe').textContent = 'Pick at least one thing to include'; return; }
+    const sid = exFor || D.session.id;
+    try {
+      if (inHost) { const f = await act('export', { session: sid, format: exFmt, parts: [...exSel] }); try { await bridge.download(f); } catch (err) { if (D.web) await bridge.openLink(D.web.origin + '/export?s=' + encodeURIComponent(sid) + '&f=' + exFmt + '&parts=' + [...exSel].join(',') + '&t=' + D.web.token); } }
+      else location.href = '/export?s=' + encodeURIComponent(sid) + '&f=' + exFmt + '&parts=' + [...exSel].join(',') + '&t=' + encodeURIComponent(qs.get('t'));
+      toast('Exported ' + sid + ' as ' + exFmt.toUpperCase());
+      mode = 'focus'; exFor = null;
+    } catch (err) { $('xe').textContent = err.message; return; }
+  }
+  panel();
+});
+
+// map pointer: drag to move, wheel/pinch to zoom, click to select, hover to explain a dot
+let drag = null, moved = false;
+cv.addEventListener('wheel', (e) => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, cx, cy }; moved = false; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; $('tip').style.display = 'none'; });
+cv.addEventListener('pointermove', (e) => {
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) { moved = true; userMoved = true; } cx = drag.cx - dx / (k * base()); cy = drag.cy - dy / (k * base()); draw(); return; }
+  const tip = $('tip');
+  if (!encReady()) { tip.style.display = 'none'; return; }
+  let best = null, bd = 12; for (const a of apps()) { const p = P(a); const d = Math.hypot(sx(p.x) - px, sy(p.y) - py); if (d < bd) { bd = d; best = a; } }
+  if (!best) { tip.style.display = 'none'; return; }
+  const e2 = enc(best), look = ['small', 'medium', 'big'][sizeBy === 'revenue' ? (best.rb == null ? 1 : best.rb) : best.t] + ', ' + TIER[e2.br] + ', ' + (e2.hollow ? 'hollow' : 'filled');
+  tip.innerHTML = '<b>' + esc(best.n) + '</b> · ' + look + '<br>Est. revenue: ' + esc(best.rl) + (best.rm ? ' <span style="color:var(--dim)">(' + esc(best.rc || 'L') + ')</span>' : '') + '<br>Users: ' + esc(best.ul || 'n/a') + ' · ' + TIER[best.t] + ' within ' + esc(D.storeLabels[best.s]) + (best.seg ? '<br><span style="color:var(--ok)">' + esc([(segById(best.seg) || {}).name, (kwById(best.kw) || {}).name].filter(Boolean).join(' › ')) + '</span>' : '');
+  tip.style.display = 'block'; tip.style.left = Math.min(px + 14, W - 250) + 'px'; tip.style.top = Math.min(py + 14, H - 110) + 'px';
+});
+cv.addEventListener('pointerleave', () => ($('tip').style.display = 'none'));
+cv.addEventListener('pointerup', (e) => {
+  cv.style.cursor = 'grab'; const was = drag; drag = null; if (!D) return; if (moved) return saveView(); if (!was) return;
+  const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  if (mode !== 'focus') { mode = 'focus'; }
+  const o = encReady() && D.openings.find((o) => Math.hypot(sx(o.x) - px, sy(o.y) - py) < 16); if (o) return select({ kind: 'opening', id: o.id });
+  let best = null, bd = 10; for (const a of apps()) { const p = P(a); const d = Math.hypot(sx(p.x) - px, sy(p.y) - py); if (d < bd) { bd = d; best = a; } }
+  if (best) return select({ kind: 'app', id: best.id });
+  if (grouped() && D.segments.length) { const wx = (px - W / 2) / (k * base()) + cx, wy = (py - H / 2) / (k * base()) + cy; const g = near(D.segments, wx, wy); if (g && Math.hypot(sx(g.x) - px, sy(g.y) - py) < 90 * k * base()) return select({ kind: 'segment', id: g.id }); }
+  select(null);
+});
+// keyboard: arrows pan, +/- zoom
+cv.tabIndex = 0;
+cv.addEventListener('keydown', (e) => { const s = 40 / (k * base()); if (e.key === '+' || e.key === '=') zoomAt(1.4, W / 2, H / 2); else if (e.key === '-') zoomAt(1 / 1.4, W / 2, H / 2); else if (e.key === 'ArrowLeft') cx -= s; else if (e.key === 'ArrowRight') cx += s; else if (e.key === 'ArrowUp') cy -= s; else if (e.key === 'ArrowDown') cy += s; else return; e.preventDefault(); draw(); });
+
+// toolbar
+$('bSes').onclick = async () => { if (mode === 'sessions') { mode = 'focus'; return panel(); } mode = 'sessions'; sessionsList = null; panel(); try { sessionsList = (await act('sessions', {})).sessions; } catch (e) { sessionsList = []; } panel(); };
+$('bPlan').onclick = () => { mode = mode === 'idea' ? 'focus' : 'idea'; panel(); const t = $('idea'); if (t) { t.focus(); t.addEventListener('input', () => ($('ie').textContent = '')); } };
+$('bExport').onclick = () => { if (!D) return toast('Run a scout first'); exFor = null; mode = mode === 'export' ? 'focus' : 'export'; panel(); };
+$('bBrowser').onclick = () => { if (D && D.web) bridge.openLink(D.web.url).catch(() => toast('The host didn’t open the link')); else toast('The local map server isn’t running'); };
+$('stat').onclick = () => { pcShow = !pcShow; progress(); };
+$('stat').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('stat').click(); } };
+$('bScout').onclick = async () => {
+  const n = +$('nApps').value;
+  try { const snap = await act('start', { apps: n, topic: D ? D.session.topic : null, stores: D ? D.session.stores : undefined, market: D ? D.session.market : 'us', name: D ? undefined : 'Overview' }); mode = 'focus'; plan = null; setData(snap); homeCamera(true); }
+  catch (e) { toast(e.message); }
+};
+let full = false;
+$('bFull').onclick = async () => {
+  try {
+    if (bridge.canFullscreen()) { const r = await bridge.fullscreen(!full); full = inHost ? (r && r.mode) === 'fullscreen' : !full; }
+    else { $('app').classList.toggle('tall'); }
+  } catch (e) { $('app').classList.toggle('tall'); }
+  $('app').classList.toggle('full', full && inHost); size();
+};
+if (!inHost) $('bBrowser').style.display = 'none';
+window.addEventListener('resize', size);
+new ResizeObserver(size).observe(cv);
+
+// ------------------------------------------------------------------ start
+function render() { size(); panel(); }
+(async function start() {
+  bridge.onresult = (r) => { if (r && r.structuredContent) setData(r.structuredContent); };
+  bridge.oncontext = (c) => { if (c.displayMode) { full = c.displayMode === 'fullscreen'; $('app').classList.toggle('full', full); size(); } };
+  try { await bridge.connect(); } catch (e) {}
+  if (inHost && !bridge.canFullscreen()) $('bFull').title = 'Taller map';
+  if (!inHost) {
+    const sid = qs.get('s');
+    try {
+      if (sid) setData(await bridge.action('snapshot', { session: sid }));
+      else { const l = (await bridge.action('sessions', {})).sessions; if (l.length) setData(await bridge.action('snapshot', { session: l[0].id })); else render(); }
+    } catch (e) { toast(e.message); render(); }
+  } else render();
+})();
+})();
+</script>
+</body>
+</html>
