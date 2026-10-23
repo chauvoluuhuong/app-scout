@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assignTiers, clusterLayout, estimateRevenue, monthlyPrice, revenueBucket, segmentStats, spiralLayout } from '../server/analysis.mjs';
+import { assignTiers, clusterLayout, estimateRevenue, monthlyPrice, revenueBucket, sameProduct, segmentStats, spiralLayout } from '../server/analysis.mjs';
 import { human, pageText, parseCount, queryMatch } from '../server/lib/util.mjs';
 
 test('parseCount reads store labels', () => {
@@ -33,6 +33,16 @@ test('estimateRevenue uses App Store ratings x 50..100 and labels the result', (
   assert.match(e.revenueLabel, /^est\. \$/);
   assert.equal(e.revenueConf, 'L');
   assert.equal(estimateRevenue({ store: 'github', users: 100 }).revenue, null);
+});
+
+test('sameProduct matches one product across stores, and not look-alikes', () => {
+  assert.equal(sameProduct({ name: 'Otter Transcribe Voice Notes' }, { name: 'OtterAI Transcribe Voice Notes' }), true);
+  assert.equal(sameProduct({ name: 'Fireflies: AI notetaker' }, { name: 'Fireflies: AI meeting notes', developer: '' }), false);
+  assert.equal(sameProduct({ name: 'Fireflies: AI notetaker', developer: 'Fireflies.ai Corp' }, { name: 'Fireflies: AI meeting notes', developer: 'Fireflies.ai' }), true);
+  assert.equal(sameProduct({ name: 'Granola - AI Meeting Notes' }, { name: 'Granola - AI Meeting Notes' }), true);
+  assert.equal(sameProduct({ name: 'Summary - AI Note Taker' }, { name: 'Smart Noter - AI Note Taker' }), false);
+  assert.equal(sameProduct({ name: 'AI Meeting Notes' }, { name: 'AI Transcribe. Speech to Text' }), false);
+  assert.equal(sameProduct({ name: 'ChatGPT' }, { name: 'ChatGPT' }), true);
 });
 
 test('revenueBucket splits at $10k and $1M a month', () => {

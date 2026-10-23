@@ -7,7 +7,7 @@ import * as workspace from './stores/workspace.mjs';
 import * as github from './stores/github.mjs';
 import { onHttpEvent } from './lib/http.mjs';
 import { log, queryMatch, slug } from './lib/util.mjs';
-import { assignTiers, clusterLayout, estimateRevenue, monthlyPrice, productKey, revenueBucket, spiralLayout } from './analysis.mjs';
+import { assignTiers, clusterLayout, estimateRevenue, monthlyPrice, revenueBucket, sameProduct, spiralLayout } from './analysis.mjs';
 import { publish } from './bus.mjs';
 import { save } from './sessions.mjs';
 
@@ -182,13 +182,10 @@ async function enrichAppStore(s, ctl) {
 
 /** Fill revenue estimates, user tiers and positions from what has been collected. */
 export function analyse(s) {
-  const prices = new Map();
-  for (const a of s.apps) if (a.store === 'appstore') {
-    const p = monthlyPrice(a);
-    if (p) prices.set(productKey(a.name), p);
-  }
+  const priced = s.apps.filter((a) => a.store === 'appstore').map((a) => ({ a, p: monthlyPrice(a) })).filter((x) => x.p);
   for (const a of s.apps) {
-    Object.assign(a, estimateRevenue(a, a.store === 'appstore' ? null : prices.get(productKey(a.name)) ?? null));
+    const twin = a.store === 'appstore' ? null : priced.find((x) => sameProduct(x.a, a));
+    Object.assign(a, estimateRevenue(a, twin ? twin.p : null));
     a.revBucket = revenueBucket(a.revenue);
   }
   assignTiers(s.apps);

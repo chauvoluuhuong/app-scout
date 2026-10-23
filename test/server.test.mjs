@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,8 +11,8 @@ import { connect } from 'node:net';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-function start() {
-  const srv = spawn(process.execPath, [join(root, 'server/index.mjs')], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'app-scout-test-')) } });
+function start(dataDir = mkdtempSync(join(tmpdir(), 'app-scout-test-'))) {
+  const srv = spawn(process.execPath, [join(root, 'server/index.mjs')], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_PLUGIN_DATA: dataDir } });
   let buf = '', seq = 0;
   const waiting = new Map();
   srv.stdout.on('data', (d) => {
@@ -63,10 +63,39 @@ test('MCP handshake, tools, UI resource and app-only tool', async () => {
   }
 });
 
+test('hosts without MCP Apps get text only; MCP Apps hosts get a pointer, never the app list', async () => {
+  const plain = start();
+  try {
+    await plain.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'cli', version: '0' } });
+    const r = (await plain.rpc('tools/call', { name: 'plan_research', arguments: { idea: 'x', segments: [{ name: 'A', phrases: ['a'] }] } })).result;
+    assert.equal(r.structuredContent, undefined);
+    assert.match(r.content[0].text, /Plan ready/);
+  } finally {
+    plain.srv.kill();
+  }
+  // A saved session on disk, so no crawl (and no network) is needed.
+  const dir = mkdtempSync(join(tmpdir(), 'app-scout-test-'));
+  mkdirSync(join(dir, 'sessions'), { recursive: true });
+  const apps = [{ id: 'a1', store: 'github', storeId: 'o/r', name: 'repo', users: 10, usersLabel: '10 stars', x: 500, y: 300, revenue: null, revenueLabel: 'Unknown', tier: 2 }];
+  writeFileSync(join(dir, 'sessions', 'saved-abc123.json'), JSON.stringify({ id: 'saved-abc123', name: 'Saved', created: '2026-10-23T00:00:00Z', updated: '2026-10-23T00:00:00Z', market: 'us', topic: null, target: 20, stores: ['github'], plan: null, status: 'grouping', progress: { pct: 100, step: 'Done', perStore: { github: { status: 'done', apps: 1, details: 1, reviews: 0, slowed: 0 } }, searches: { done: 0, total: 0 }, pricingPages: 0, reviewsRead: 0 }, apps, grouping: null, questions: [], view: {}, error: null }));
+  const ui = start(dir);
+  try {
+    await ui.rpc('initialize', { protocolVersion: '2025-06-18', capabilities: { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } }, clientInfo: { name: 'host', version: '0' } });
+    const r = (await ui.rpc('tools/call', { name: 'show_map', arguments: { session: 'saved-abc123' } })).result;
+    assert.equal(r.structuredContent.view, 'map');
+    assert.equal(r.structuredContent.session.id, 'saved-abc123');
+    assert.equal(r.structuredContent.apps, undefined);
+    const full = (await ui.rpc('tools/call', { name: 'ui_action', arguments: { action: 'snapshot', args: { session: 'saved-abc123' } } })).result;
+    assert.equal(full.structuredContent.apps.length, 1);
+  } finally {
+    ui.srv.kill();
+  }
+});
+
 test('local web server rejects requests without the token and speaks WebSocket with it', async () => {
   const { srv, rpc } = start();
   try {
-    await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '0' } });
+    await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } }, clientInfo: { name: 'test', version: '0' } });
     const res = (await rpc('resources/read', { uri: 'ui://app-scout/map.html' })).result.contents[0];
     const origin = res._meta.ui.csp.connectDomains.find((d) => d.startsWith('http://'));
     assert.equal((await fetch(origin + '/api/action', { method: 'POST', body: '{}' })).status, 403);

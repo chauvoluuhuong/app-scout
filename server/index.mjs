@@ -2,12 +2,12 @@
 // App Scout MCP server: JSON-RPC 2.0 over stdio, one message per line (MCP stdio transport).
 // stdout carries only protocol messages; every log goes to stderr.
 import { createInterface } from 'node:readline';
-import { callTool, listResources, listTools, readResource } from './tools.mjs';
+import { callTool, listResources, listTools, readResource, setClientCapabilities } from './tools.mjs';
 import { handleAction } from './actions.mjs';
 import { startWeb } from './web/server.mjs';
 import { log } from './lib/util.mjs';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 
 const INSTRUCTIONS = `App Scout researches the app market for the user and shows it on a live map.
@@ -25,6 +25,7 @@ async function handle(msg) {
   switch (method) {
     case 'initialize': {
       const v = SUPPORTED.includes(params?.protocolVersion) ? params.protocolVersion : SUPPORTED[1];
+      setClientCapabilities(params?.capabilities);
       return {
         protocolVersion: v,
         capabilities: { tools: { listChanged: false }, resources: { listChanged: false } },

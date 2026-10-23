@@ -162,7 +162,7 @@ function HostBridge() {
     else if (m.id !== undefined) post({ id: m.id, error: { code: -32601, message: 'Method not found: ' + m.method } });
   });
   b.connect = async () => {
-    const r = await request('ui/initialize', { appInfo: { name: 'app-scout', version: '0.1.0' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' });
+    const r = await request('ui/initialize', { appInfo: { name: 'app-scout', version: '0.1.1' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' });
     b.ctx = (r && r.hostContext) || {};
     post({ method: 'ui/notifications/initialized' });
     let w = 0, h = 0, queued = false;
@@ -316,12 +316,12 @@ const fade = (v, a, b, c, d) => (v < a || v > d ? 0 : v < b ? (v - a) / (b - a) 
 const P = (a) => pos.get(a.id) || a;
 // Labels claim a box each frame; a label that would overlap one already drawn is skipped.
 let boxes = [];
-function label(t, x, y, px, col, al, w) {
+function label(t, x, y, px, col, al, w, force) {
   if (al <= 0.02) return false;
   ctx.font = (w || 400) + ' ' + px + 'px system-ui,sans-serif';
   const tw = ctx.measureText(t).width;
   const bx = { x1: x - tw / 2 - 3, x2: x + tw / 2 + 3, y1: y - px / 2 - 2, y2: y + px / 2 + 2 };
-  if (boxes.some((o) => !(bx.x2 < o.x1 || bx.x1 > o.x2 || bx.y2 < o.y1 || bx.y1 > o.y2))) return false;
+  if (!force && boxes.some((o) => !(bx.x2 < o.x1 || bx.x1 > o.x2 || bx.y2 < o.y1 || bx.y1 > o.y2))) return false;
   boxes.push(bx);
   ctx.globalAlpha = al; ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y); ctx.globalAlpha = 1;
   return true;
@@ -383,18 +383,40 @@ function draw() {
     ctx.globalAlpha = 1;
   }
   boxes = [];
+  // Segment names first and never skipped; everything else gives way to them.
+  const a1 = grouped() ? fade(k, 0, 0, 1.7, 2.4) : 0;
+  const segs = grouped() ? [...D.segments].sort((a, b) => b.stats.apps - a.stats.apps) : [];
+  const segY = (s) => sy(s.y) - (14 + 5.5 * Math.sqrt(s.stats.apps)) * k * base() - 16;
+  const segAt = {};
+  const fs = Math.max(11, Math.min(15, Math.round(W / 52))); // smaller names on a small map
+  for (const s of segs) {
+    // Try the natural spot, then nudge up or down, then a shortened name; if every spot is
+    // taken, draw the full name at the natural spot anyway: a segment name is never dropped.
+    const y0 = segY(s);
+    const short = s.name.length > 14 ? s.name.slice(0, 13).trim() + '…' : null;
+    outer: for (const name of short ? [s.name, short] : [s.name]) {
+      for (const dy of [0, -fs - 5, fs + 5, -2 * (fs + 5), 2 * (fs + 5)]) {
+        if (label(name, sx(s.x), y0 + dy, fs, '#E1F5EE', a1, 600)) { segAt[s.id] = y0 + dy; break outer; }
+      }
+    }
+    if (segAt[s.id] == null) { label(s.name, sx(s.x), y0, fs, '#E1F5EE', a1, 600, true); segAt[s.id] = y0; }
+  }
   if (ready && !act) for (const o of D.openings) {
     const X = sx(o.x), Y = sy(o.y); if (X < -200 || X > W + 200 || Y < -50 || Y > H + 50) continue;
     ctx.beginPath(); ctx.arc(X, Y, 7, 0, 7); ctx.fillStyle = '#EF9F27'; ctx.fill();
-    ctx.font = '600 12px system-ui,sans-serif'; const tw = ctx.measureText(o.name).width + 18, bx = X - tw / 2, by = Y + 12;
+    ctx.font = '600 12px system-ui,sans-serif'; const tw = ctx.measureText(o.name).width + 18, bx = X - tw / 2;
+    // The tag goes below or above the dot where it fits; if neither fits, only the dot shows
+    // until the user zooms in, so a tag never covers a segment name.
+    const free = (y) => !boxes.some((b) => !(bx + tw < b.x1 || bx > b.x2 || y + 22 < b.y1 || y > b.y2));
+    const by = [Y + 12, Y - 34].find(free);
+    if (by == null) continue;
     ctx.fillStyle = '#2E2104'; ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(bx, by, tw, 22, 6); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#FAC775'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.name, X, by + 11);
     boxes.push({ x1: bx, x2: bx + tw, y1: by, y2: by + 22 });
   }
   if (grouped()) {
-    const a1 = fade(k, 0, 0, 1.7, 2.4), a2 = fade(k, 1.5, 2.2, 4, 5);
-    const segs = [...D.segments].sort((a, b) => b.stats.apps - a.stats.apps);
-    for (const s of segs) { const yy = sy(s.y) - (14 + 5.5 * Math.sqrt(s.stats.apps)) * k * base() - 16; if (label(s.name, sx(s.x), yy, 15, '#E1F5EE', a1, 600)) label(s.stats.apps + ' apps' + (s.stats.crowded ? ' · crowded' : ''), sx(s.x), yy + 16, 11.5, s.stats.crowded ? '#F0997B' : '#9FE1CB', a1); }
+    const a2 = fade(k, 1.5, 2.2, 4, 5);
+    for (const s of segs) label(s.stats.apps + ' apps' + (s.stats.crowded ? ' · crowded' : ''), sx(s.x), segAt[s.id] + 16, 11.5, s.stats.crowded ? '#F0997B' : '#9FE1CB', a1);
     for (const kw of D.keywords) label(kw.name, sx(kw.x), sy(kw.y) - 22 * base() * Math.min(k, 3), 12.5, '#9FE1CB', a2, 600);
   }
   const a3 = fade(k, 3.8, 4.8, 99, 100);
@@ -450,14 +472,14 @@ function info(f) {
 function contextOf(f) {
   const i = info(f);
   const near = f.kind === 'segment' ? D.segments.filter((x) => x.id !== f.id).map((x) => x.name).slice(0, 4) : f.kind === 'keyword' ? D.keywords.filter((x) => x.seg === f.o.seg && x.id !== f.id).map((x) => x.name) : f.kind === 'app' ? apps().filter((x) => x.kw && x.kw === f.o.kw && x.id !== f.id).sort((a, b) => (b.u || 0) - (a.u || 0)).slice(0, 5).map((x) => x.n) : [];
-  const c = { session: D.session.id, apps_investigated: D.session.target, focused_plan: D.session.plan ? D.session.plan.segments.map((x) => x.name) : null, size_by: sizeBy, lens, focus: { type: f.kind, id: f.id || null, name: f.name, path: pathOf(f) }, metrics: Object.fromEntries(i.m.map((m) => [m[0].toLowerCase().replace(/[ .]/g, '_'), m[1]])), insight: i.ins, nearby: near, data_as_of: D.session.updated.slice(0, 10) };
+  const c = { session: D.session.id, apps_investigated: D.session.target, focused_plan: D.session.plan ? D.session.plan.segments.map((x) => x.name) : null, size_by: sizeBy, lens, focus: { type: f.kind, id: f.id || null, name: f.name, path: pathOf(f) }, metrics: Object.fromEntries(i.m.map((m) => [m[0].toLowerCase().replace(/[ .]/g, '_'), m[1]])), insight: i.ins, nearby: near, status: D.session.status, live_updates: wsOk ? 'websocket' : fallbackT ? 'refresh' : 'none', data_as_of: D.session.updated.slice(0, 10) };
   if (f.kind === 'app') Object.assign(c.focus, { store: D.storeLabels[f.o.s], url: f.o.url, revenue_method: f.o.rm || null });
   return c;
 }
 let ctxT = null;
 function pushContext() {
   if (!inHost || !D || !focus) return;
-  const key = D.session.id + '|' + focus.kind + '|' + (focus.id || '') + '|' + sizeBy + '|' + lens;
+  const key = D.session.id + '|' + D.session.status + '|' + focus.kind + '|' + (focus.id || '') + '|' + sizeBy + '|' + lens;
   if (key === lastCtx) return; // only when what the user looks at changes
   lastCtx = key;
   clearTimeout(ctxT); ctxT = setTimeout(() => bridge.context('App Scout map (session ' + D.session.id + ') — the user is looking at: ' + JSON.stringify(contextOf(focus))), 900); }
@@ -775,8 +797,19 @@ new ResizeObserver(size).observe(cv);
 
 // ------------------------------------------------------------------ start
 function render() { size(); panel(); }
+// Model tools send a pointer (session id and links), not the map data, so the data never
+// passes through Claude's context; the view fetches it. With no structured data at all,
+// the session id comes from the tool's text.
+async function handleResult(r) {
+  const sc = r && r.structuredContent;
+  if (sc && (sc.view === 'plan' || sc.view === 'error' || Array.isArray(sc.apps))) return setData(sc);
+  const text = ((r && r.content) || []).map((c) => c.text || '').join(' ');
+  const id = (sc && sc.session && sc.session.id) || (text.match(/\b(?:scout|Session) ([a-z0-9]+(?:-[a-z0-9]+)+)/) || [])[1];
+  if (!id) return;
+  try { setData(await bridge.action('snapshot', { session: id })); } catch (e) { toast(e.message); }
+}
 (async function start() {
-  bridge.onresult = (r) => { if (r && r.structuredContent) setData(r.structuredContent); };
+  bridge.onresult = handleResult;
   bridge.oncontext = (c) => { if (c.displayMode) { full = c.displayMode === 'fullscreen'; $('app').classList.toggle('full', full); size(); } };
   try { await bridge.connect(); } catch (e) {}
   if (inHost && !bridge.canFullscreen()) $('bFull').title = 'Taller map';

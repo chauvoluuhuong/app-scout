@@ -34,8 +34,25 @@ function userBase(app) {
   return null;
 }
 
-/** Name key for spotting the same product in two stores ("Otter Transcribe Voice Notes" ~ "OtterAI Transcribe Voice Notes"). */
-export const productKey = (name) => String(name || '').toLowerCase().split(/[:\-–|(]/)[0].replace(/[^a-z0-9]/g, '').slice(0, 14);
+// Spotting the same product in two stores. Listing names differ in small ways ("Otter Transcribe
+// Voice Notes" on iOS, "OtterAI Transcribe Voice Notes" on Play), so compare the brand word
+// (the first word, with a trailing "ai" or "app" removed) and require the rest to overlap.
+const FILLER = new Set(['ai', 'app', 'apps', 'the', 'for', 'and', 'with', 'by', 'a', 'an', 'of', 'to', 'your', 'free', 'pro', 'new', 'app.']);
+function nameTokens(name) {
+  const words = String(name || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+  const brand = (words[0] || '').replace(/(ai|app)$/, '') || words[0] || '';
+  return { brand, rest: new Set(words.slice(1).filter((w) => !FILLER.has(w))) };
+}
+
+export function sameProduct(a, b) {
+  const x = nameTokens(a.name), y = nameTokens(b.name);
+  if (!x.brand || x.brand !== y.brand || x.brand.length < 3) return false;
+  if (!x.rest.size || !y.rest.size) return true; // one-word names: the brand is the product
+  const shared = [...x.rest].filter((w) => y.rest.has(w)).length;
+  const devA = String(a.developer || '').toLowerCase().split(/\W+/)[0];
+  const devB = String(b.developer || '').toLowerCase().split(/\W+/)[0];
+  return shared / Math.min(x.rest.size, y.rest.size) >= 0.5 || (devA.length > 2 && devA === devB);
+}
 
 /**
  * `borrowed` is an App Store monthly price for the same product, used when this store

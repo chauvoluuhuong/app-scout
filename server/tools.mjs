@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { handleAction, normalizePlan, startScout } from './actions.mjs';
 import { applyGrouping, ALL_STORES, isRunning, STORE_LABEL } from './pipeline.mjs';
 import { getSession, listSessions, save, EXPORTS } from './sessions.mjs';
-import { snapshot, summary } from './viewmodel.mjs';
+import { summary } from './viewmodel.mjs';
 import { exportSession, PARTS } from './export.mjs';
 import { connectOrigins, sendTo, UI_FILE, webInfo } from './web/server.mjs';
 import { waitFor, publish } from './bus.mjs';
@@ -156,6 +156,17 @@ export const listTools = () => TOOLS;
 
 const text = (t, structured, isError) => ({ content: [{ type: 'text', text: t }], ...(structured ? { structuredContent: structured } : {}), ...(isError ? { isError: true } : {}) });
 
+// Some hosts pass structuredContent to the model as well as to the view, so model-visible
+// tools send only a pointer (session id and links); the view fetches the map data itself
+// through ui_action. Hosts that don't render MCP Apps get no structuredContent at all.
+let uiHost = false;
+export function setClientCapabilities(caps) {
+  const ui = caps?.extensions?.['io.modelcontextprotocol/ui'];
+  uiHost = !!(ui && (ui.mimeTypes || []).includes(RESOURCE_MIME_TYPE));
+}
+const forView = (payload) => (uiHost ? payload : null);
+const mapPointer = (s) => forView({ view: 'map', session: { id: s.id, name: s.name, status: s.status }, web: webInfo(s.id) });
+
 function appLine(a) {
   const low = (a.lowReviews || []).map((r) => r.title).filter(Boolean).slice(0, 2).join(' / ');
   return [a.id, STORE_LABEL[a.store], a.name, a.category || '', a.usersLabel || '', a.rating != null ? `${Math.round(a.rating * 10) / 10}★` : '', a.priceLabel || '', a.revenueLabel, a.topGrossingRank ? `top grossing #${a.topGrossingRank}` : '', (a.summary || '').replace(/\s+/g, ' ').slice(0, 120), low ? `low reviews: ${low}` : '']
@@ -166,7 +177,7 @@ const HANDLERS = {
   async scout(a) {
     const s = startScout({ topic: a.topic, apps: a.apps, stores: a.stores, market: a.market });
     const w = webInfo(s.id);
-    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live.` + (w ? `\nLive map in the browser: ${w.url}` : '') + '\nNext: call scout_status with this session id.', snapshot(s, w));
+    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live.` + (w ? `\nLive map in the browser: ${w.url}` : '') + '\nNext: call scout_status with this session id.', mapPointer(s));
   },
   async scout_status(a) {
     const s = getSession(a.session);
@@ -190,11 +201,11 @@ const HANDLERS = {
   },
   async plan_research(a) {
     const plan = normalizePlan(a);
-    return text(`Plan ready for "${plan.idea}": ${plan.segments.length} segments to scout (${plan.segments.map((x) => x.name).join(', ')}). The user can edit it in the map view and start a focused scout.`, { view: 'plan', plan, web: webInfo(null) });
+    return text(`Plan ready for "${plan.idea}": ${plan.segments.length} segments to scout (${plan.segments.map((x) => x.name).join(', ')}). The user can edit it in the map view and start a focused scout.`, forView({ view: 'plan', plan, web: webInfo(null) }));
   },
   async show_map(a) {
     const s = getSession(a.session);
-    return text(summary(s, webInfo(s.id)), snapshot(s, webInfo(s.id)));
+    return text(summary(s, webInfo(s.id)), mapPointer(s));
   },
   async list_sessions() {
     const l = listSessions();
@@ -237,7 +248,7 @@ export async function callTool(name, args) {
   try {
     return await h(args || {});
   } catch (e) {
-    return text(e.message, { view: 'error', message: e.message }, true);
+    return text(e.message, name === 'ui_action' ? { view: 'error', message: e.message } : forView({ view: 'error', message: e.message }), true);
   }
 }
 
