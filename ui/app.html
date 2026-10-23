@@ -315,7 +315,8 @@ const panelOff = () => (document.getElementById('app').classList.contains('narro
 const fade = (v, a, b, c, d) => (v < a || v > d ? 0 : v < b ? (v - a) / (b - a) : v <= c ? 1 : (d - v) / (d - c));
 const P = (a) => pos.get(a.id) || a;
 // Labels claim a box each frame; a label that would overlap one already drawn is skipped.
-let boxes = [];
+// drawnLabels is exposed as window.__appScoutLabels so the e2e test can check what's on screen.
+let boxes = [], drawnLabels = [];
 function label(t, x, y, px, col, al, w, force) {
   if (al <= 0.02) return false;
   ctx.font = (w || 400) + ' ' + px + 'px system-ui,sans-serif';
@@ -323,6 +324,7 @@ function label(t, x, y, px, col, al, w, force) {
   const bx = { x1: x - tw / 2 - 3, x2: x + tw / 2 + 3, y1: y - px / 2 - 2, y2: y + px / 2 + 2 };
   if (!force && boxes.some((o) => !(bx.x2 < o.x1 || bx.x1 > o.x2 || bx.y2 < o.y1 || bx.y1 > o.y2))) return false;
   boxes.push(bx);
+  drawnLabels.push(t);
   ctx.globalAlpha = al; ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y); ctx.globalAlpha = 1;
   return true;
 }
@@ -383,6 +385,8 @@ function draw() {
     ctx.globalAlpha = 1;
   }
   boxes = [];
+  drawnLabels = [];
+  window.__appScoutLabels = drawnLabels;
   // Segment names first and never skipped; everything else gives way to them.
   const a1 = grouped() ? fade(k, 0, 0, 1.7, 2.4) : 0;
   const segs = grouped() ? [...D.segments].sort((a, b) => b.stats.apps - a.stats.apps) : [];

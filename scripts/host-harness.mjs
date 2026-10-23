@@ -2,6 +2,7 @@
 // It starts the MCP server over stdio, serves a page with the view in a sandboxed iframe, and
 // relays the view's requests (tools/call, ui/message, ui/open-link, ...) like a host would.
 // Usage: node scripts/host-harness.mjs [session-id]   then open http://127.0.0.1:4790
+// (HARNESS_PORT changes the port; CLAUDE_PLUGIN_DATA the data directory.)
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
@@ -62,4 +63,4 @@ createServer(async (req, res) => {
   }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(PAGE);
-}).listen(4790, '127.0.0.1', () => console.log('harness on http://127.0.0.1:4790'));
+}).listen(Number(process.env.HARNESS_PORT) || 4790, '127.0.0.1', function () { console.log(`harness on http://127.0.0.1:${this.address().port}`); });
