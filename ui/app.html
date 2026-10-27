@@ -103,7 +103,7 @@ a{color:var(--ok)}
     <button class="gh" id="bSes" aria-label="Switch session"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span id="sesName">App Scout</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
     <span class="stat" id="stat" role="button" tabindex="0" title="Show scout details"></span>
     <span style="flex:1"></span>
-    <div class="grp"><label class="sr-only" for="nApps">Apps to investigate</label><select id="nApps"><option value="50">50 apps</option><option value="100" selected>100 apps</option><option value="200">200 apps</option><option value="300">300 apps</option><option value="500">500 apps</option></select><button id="bScout"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Scout</button></div>
+    <div class="grp"><label class="sr-only" for="nApps">Most apps per platform</label><select id="nApps"><option value="50">50 / platform</option><option value="100" selected>100 / platform</option><option value="200">200 / platform</option><option value="300">300 / platform</option><option value="500">500 / platform</option></select><button id="bScout"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Scout</button></div>
     <button class="pr" id="bPlan"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span class="lbl-long">Plan from idea</span><span class="lbl-short">Plan</span></button>
     <button class="ic" id="bExport" aria-label="Export this session" title="Export this session"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></button>
     <button class="ic" id="bBrowser" aria-label="Copy the map link" title="Copy the map link to open it in another browser"><svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></button>
@@ -413,7 +413,7 @@ function info(f) {
   const all = apps();
   if (f.kind === 'category') {
     const plats = new Set(all.map((a) => a.s)).size, reviews = all.reduce((t, a) => t + (a.rv || 0), 0);
-    return { m: [['Apps found', all.length + ' of ' + D.session.target, 'apps'], ['Platforms', plats, 'platforms'], ['Segments', grouped() ? D.segments.length + (D.session.groupedBy === 'claude' ? ' · AI' : ' · by store') : 'after crawl', 'segments'], ['Reviews read', reviews, 'reviews']], ins: running() ? 'The crawl is running; the map fills in as apps arrive.' : (D.session.groupedBy === 'claude' ? 'Zoom in or select a segment to see what drives it.' : 'Claude has not grouped these apps yet.') };
+    return { m: [['Apps found', all.length + ' · ≤' + D.session.target + '/platform', 'apps'], ['Platforms', plats, 'platforms'], ['Segments', grouped() ? D.segments.length + (D.session.groupedBy === 'claude' ? ' · AI' : ' · by store') : 'after crawl', 'segments'], ['Reviews read', reviews, 'reviews']], ins: running() ? 'The crawl is running; the map fills in as apps arrive.' : (D.session.groupedBy === 'claude' ? 'Zoom in or select a segment to see what drives it.' : 'Claude has not grouped these apps yet.') };
   }
   if (f.kind === 'segment') { const st = f.o.stats; const top = Object.entries(st.platforms).sort((a, b) => b[1] - a[1]).slice(0, 2).map((e) => D.storeLabels[e[0]] + ' ' + e[1]).join(', '); return { m: [['Apps found', st.apps, 'apps', { seg: f.id }], ['Crowded', st.crowded ? 'Yes' : 'No', 'segments'], ['Revenue known', st.revenueKnown + ' of ' + st.apps, 'apps', { seg: f.id, sort: 'r' }], ['Mostly on', top || '—', 'platforms', { seg: f.id }]], ins: f.o.insight }; }
   if (f.kind === 'keyword') { const l = all.filter((a) => a.kw === f.id); const lead = [...l].sort((a, b) => (b.u || 0) - (a.u || 0)).slice(0, 2).map((a) => a.n).join(', '); return { m: [['Apps found', l.length, 'apps', { kw: f.id }], ['Money gaps', l.filter(LENS.gaps.f).length, 'apps', { kw: f.id, lens: 'gaps' }], ['Segment', (segById(f.o.seg) || {}).name || '—', 'segments'], ['Leaders', lead || '—', 'apps', { kw: f.id, sort: 'u' }]], ins: f.o.insight }; }
@@ -423,7 +423,7 @@ function info(f) {
 function contextOf(f) {
   const i = info(f);
   const near = f.kind === 'segment' ? D.segments.filter((x) => x.id !== f.id).map((x) => x.name).slice(0, 4) : f.kind === 'keyword' ? D.keywords.filter((x) => x.seg === f.o.seg && x.id !== f.id).map((x) => x.name) : f.kind === 'app' ? apps().filter((x) => x.kw && x.kw === f.o.kw && x.id !== f.id).sort((a, b) => (b.u || 0) - (a.u || 0)).slice(0, 5).map((x) => x.n) : [];
-  const c = { session: D.session.id, apps_investigated: D.session.target, focused_plan: D.session.plan ? D.session.plan.segments.map((x) => x.name) : null, lens, focus: { type: f.kind, id: f.id || null, name: f.name, path: pathOf(f) }, metrics: Object.fromEntries(i.m.map((m) => [m[0].toLowerCase().replace(/[ .]/g, '_'), m[1]])), insight: i.ins, nearby: near, status: D.session.status, live_updates: wsOk ? 'websocket' : fallbackT ? 'refresh' : 'none', data_as_of: D.session.updated.slice(0, 10) };
+  const c = { session: D.session.id, apps_per_platform: D.session.target, focused_plan: D.session.plan ? D.session.plan.segments.map((x) => x.name) : null, lens, focus: { type: f.kind, id: f.id || null, name: f.name, path: pathOf(f) }, metrics: Object.fromEntries(i.m.map((m) => [m[0].toLowerCase().replace(/[ .]/g, '_'), m[1]])), insight: i.ins, nearby: near, status: D.session.status, live_updates: wsOk ? 'websocket' : fallbackT ? 'refresh' : 'none', data_as_of: D.session.updated.slice(0, 10) };
   if (f.kind === 'app') Object.assign(c.focus, { store: D.storeLabels[f.o.s], url: f.o.url, revenue_method: f.o.rm || null });
   return c;
 }
@@ -503,7 +503,7 @@ function progress() {
   const pr = D.progress, done = !running();
   const rows = Object.entries(pr.perStore);
   const tot = rows.reduce((t, [, v]) => ({ a: t.a + v.apps, d: t.d + v.details, r: t.r + v.reviews }), { a: 0, d: 0, r: 0 });
-  let h = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>' + (done ? (D.session.status === 'failed' ? 'Scout failed' : 'Scout finished') : (D.session.plan ? 'Focused scout' : 'Scouting')) + ' · ' + D.session.target + ' apps</b><span style="color:var(--mut)">' + (done ? 'saved' : pr.pct + '%') + '</span></div>';
+  let h = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>' + (done ? (D.session.status === 'failed' ? 'Scout failed' : 'Scout finished') : (D.session.plan ? 'Focused scout' : 'Scouting')) + ' · up to ' + D.session.target + ' per platform</b><span style="color:var(--mut)">' + (done ? 'saved' : pr.pct + '%') + '</span></div>';
   h += done ? '<div style="height:8px"></div>' : '<div class="pg" role="progressbar" aria-valuenow="' + pr.pct + '" aria-valuemin="0" aria-valuemax="100"><div style="width:' + pr.pct + '%"></div></div>';
   h += '<div class="tb"><span></span><span class="h">Platform</span><span class="h n">Apps</span><span class="h n">Details</span><span class="h n">Reviews</span>';
   for (const [st, v] of rows) {

@@ -27,14 +27,14 @@ const TOOLS = [
     name: 'scout',
     title: 'Scout the app market',
     description:
-      'Start a market scout: collect up to `apps` apps (default 100) from the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub, and show them on a live map. ' +
+      'Start a market scout: collect up to `apps` apps from each platform (default 100 per platform) from the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub, and show them on a live map. ' +
       'With no topic it reads the overall charts and categories; with a topic (for example "ai meeting notes") it searches the stores for it. ' +
       'Returns immediately with a session id while the crawl runs. Then call scout_status until the status is "grouping", call list_apps, and call save_grouping.',
     inputSchema: {
       type: 'object',
       properties: {
         topic: { type: 'string', description: 'Optional category or keyword to search for. Leave out to scout the overall charts.' },
-        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'How many apps to investigate. Default 100.' },
+        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'The most apps to collect from each platform (not in total). Default 100.' },
         stores: { type: 'array', items: { type: 'string', enum: ALL_STORES }, description: 'Stores to read. Default: all five.' },
         market: { type: 'string', enum: ['us', 'vn'], default: 'us', description: 'Store country. us (default) or vn.' },
       },
@@ -106,7 +106,7 @@ const TOOLS = [
         forms: { type: 'array', items: { type: 'string' }, description: 'Product forms, such as mobile app, Chrome extension, web app, Workspace add-on.' },
         segments: { type: 'array', items: { type: 'object', required: ['name', 'phrases'], properties: { name: { type: 'string' }, phrases: { type: 'array', items: { type: 'string' } } } } },
         stores: { type: 'array', items: { type: 'string', enum: ALL_STORES } },
-        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100 },
+        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'The most apps to collect from each platform. Default 100.' },
       },
     },
     annotations: { readOnlyHint: true },
@@ -181,7 +181,7 @@ const HANDLERS = {
   async scout(a) {
     const s = startScout({ topic: a.topic, apps: a.apps, stores: a.stores, market: a.market });
     setCurrent(s.id);
-    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url) + watchLine());
+    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from each of ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url) + watchLine());
   },
   async scout_status(a) {
     const s = getSession(a.session);
