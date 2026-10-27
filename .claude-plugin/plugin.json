@@ -1,7 +1,7 @@
 {
   "name": "app-scout",
   "displayName": "App Scout",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Research the app market on a live map: crawl the App Store, Google Play, Chrome Web Store, Workspace Marketplace and GitHub, group apps into segments with Claude, spot openings, and keep every research session.",
   "author": {
     "name": "Chau Vo Luu Huong",
