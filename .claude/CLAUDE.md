@@ -35,7 +35,7 @@ Never merge without a passing e2e run and its screenshots in the pull request.
 
 Only when the user says to release (or to merge dev into main):
 
-1. On `dev`, bump the version in all four places: `.claude-plugin/plugin.json`, `package.json`, `const VERSION` in `server/index.mjs`, and `appInfo.version` in `ui/app.html`.
+1. On `dev`, bump the version in all three places: `.claude-plugin/plugin.json`, `package.json` and `const VERSION` in `server/index.mjs`.
 2. Run all the checks above, including e2e with `--publish`.
 3. Open a pull request `dev` → `main` titled `Release <version>` with the changes since the last release and the screenshots, and merge it.
 4. Tag the release on `main`: `claude plugin tag --push` (creates `app-scout--v<version>`).
