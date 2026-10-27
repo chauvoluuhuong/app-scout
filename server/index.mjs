@@ -7,7 +7,7 @@ import { handleAction, hasQuestions, takeQuestions } from './actions.mjs';
 import { startWeb } from './web/server.mjs';
 import { log } from './lib/util.mjs';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 
 const INSTRUCTIONS = `App Scout researches the app market for the user and shows it on a live map: a local web page whose link ("Map: http://127.0.0.1:...") ends the result of scout, show_map, plan_research and scout_status.
