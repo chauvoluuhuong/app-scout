@@ -17,6 +17,8 @@ button.pr:hover{background:var(--acc2)}
 button.gh{background:transparent;border-color:transparent}
 button.ic{width:30px;padding:0;justify-content:center}
 button.sm{height:24px;padding:0 8px;font-size:11px}
+button:disabled,select:disabled{opacity:.45;cursor:not-allowed}
+button:disabled:hover{background:var(--ctl)}
 button.on{border-color:var(--acc);color:var(--acc2);background:var(--accbg)}
 svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .app{position:relative;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:0.5px solid var(--line);background:var(--bg)}
@@ -476,7 +478,18 @@ function panel() {
 }
 
 // ------------------------------------------------------------------ progress card, banner, status
+// While a scout starts or runs, the controls that would start another one are off.
+let starting = false;
+const busy = () => starting || running();
+function busyButtons() {
+  const b = busy();
+  $('bScout').disabled = b; $('nApps').disabled = b;
+  $('bScout').lastChild.textContent = b ? 'Scouting…' : 'Scout';
+  $('bScout').title = b ? 'A scout is running. Stop it or wait for it to finish.' : '';
+  const sp = document.querySelector('[data-a="startplan"]'); if (sp) sp.disabled = b;
+}
 function status() {
+  busyButtons();
   const el = $('stat');
   if (!D) { el.textContent = ''; return; }
   if (running()) { el.textContent = 'Scouting · ' + D.progress.pct + '%'; return; }
@@ -684,8 +697,11 @@ $('pn').addEventListener('click', async (e) => {
     if (out) { askState = out; mode = 'focus'; ask = true; }
   }
   else if (a === 'startplan') {
+    if (busy()) return;
+    starting = true; busyButtons();
     try { const snap = await act('start_plan', { plan, market: (D && D.session.market) || 'us' }); plan = null; mode = 'focus'; setData(snap); homeCamera(true); }
     catch (err) { const pe = $('pe'); if (pe) pe.textContent = err.message; }
+    finally { starting = false; busyButtons(); }
     return;
   }
   else if (a === 'closeplan' || a === 'closeses' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') plan = null; }
@@ -740,9 +756,12 @@ $('bBrowser').onclick = async () => { const url = D ? mapUrl(D.session.id) : loc
 $('stat').onclick = () => { pcShow = !pcShow; progress(); };
 $('stat').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('stat').click(); } };
 $('bScout').onclick = async () => {
+  if (busy()) return;
   const n = +$('nApps').value;
+  starting = true; busyButtons();
   try { const snap = await act('start', { apps: n, topic: D ? D.session.topic : null, stores: D ? D.session.stores : undefined, market: D ? D.session.market : 'us', name: D ? undefined : 'Overview' }); mode = 'focus'; plan = null; setData(snap); homeCamera(true); }
   catch (e) { toast(e.message); }
+  finally { starting = false; busyButtons(); }
 };
 $('bFull').onclick = async () => {
   try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch (e) { $('app').classList.toggle('tall'); size(); }

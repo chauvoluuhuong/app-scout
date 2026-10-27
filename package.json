@@ -1,6 +1,6 @@
 {
   "name": "app-scout",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "App Scout: app market research on a live map, as a Claude plugin.",
   "type": "module",
