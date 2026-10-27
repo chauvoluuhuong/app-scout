@@ -8,10 +8,10 @@ import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { accept } from './ws.mjs';
-import { subscribe, waitFor } from '../bus.mjs';
+import { publish, subscribe, waitFor } from '../bus.mjs';
 import { log } from '../lib/util.mjs';
 import { register } from '../lib/live.mjs';
-import { DATA_DIR } from '../sessions.mjs';
+import { DATA_DIR, getSession, onExternalChange } from '../sessions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const UI_FILE = join(here, '..', '..', 'ui', 'app.html');
@@ -179,6 +179,16 @@ export function startWeb(actionHandler, questionInbox = { has: () => false, take
       pending.delete(e.session);
       sendTo(e.session, { type: 'changed', session: e.session, kind: entry.kind });
     }, 300);
+  });
+
+  // Another App Scout server (another chat or session) wrote a session: its pages here
+  // update too, and a scout it just started is followed, as one started here would be.
+  onExternalChange((id, isNew) => {
+    if (!isNew) return publish({ session: id, kind: 'phase' });
+    try {
+      const s = getSession(id);
+      if (s.status === 'queued' || s.status === 'crawling') broadcast({ type: 'session', id: s.id, name: s.name });
+    } catch {}
   });
 
   return new Promise((resolve) => {

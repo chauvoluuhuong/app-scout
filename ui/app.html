@@ -60,6 +60,9 @@ label.ck input{width:auto}
 .lr{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px;color:var(--tx2)}
 .lr:hover{background:var(--ctl)}
 .pc{left:12px;bottom:12px;width:310px;transition:opacity .5s}
+/* While a scout runs, its progress sits in the middle of the map (left of the side panel). */
+.pc.mid{left:calc(50% - 142px);top:50%;bottom:auto;transform:translate(-50%,-50%);width:min(380px,calc(100% - 340px));min-width:280px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.45);z-index:4}
+.pc.mid b{font-size:13px}
 .gone{opacity:0;pointer-events:none}
 .pg{height:4px;background:var(--ctl);border-radius:2px;overflow:hidden;margin:8px 0}
 .pg div{height:100%;background:var(--acc);transition:width .3s}
@@ -91,6 +94,7 @@ a{color:var(--ok)}
 .app.compact #bPlan .lbl-short{display:inline}
 .app.narrow .pn{position:static;width:auto;max-height:none;margin:8px;border-radius:10px}
 .app.narrow .pc{position:static;width:auto;margin:8px}
+.app.narrow .pc.mid{position:absolute;left:50%;width:calc(100% - 32px);min-width:0;margin:0}
 .app.narrow .lg:not(.mini){width:200px}
 .app.narrow canvas{height:420px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -190,12 +194,16 @@ let refreshing = false, again = false;
 async function refresh() { if (!D) return; if (refreshing) { again = true; return; } refreshing = true; try { setData(await act('snapshot', { session: D.session.id })); } catch (e) {} refreshing = false; if (again) { again = false; refresh(); } }
 async function onWs(m) {
   if (m.type === 'result') { const w = wsWait.get(m.id); if (w) { wsWait.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(m.result); } return; }
-  if (m.type === 'changed') return refresh();
+  if (m.type === 'changed') { lastPush = Date.now(); return refresh(); }
   if (m.type === 'answer') { lastAnswer = m.question; toast('Claude answered: ' + m.question.text.slice(0, 40)); refresh(); return; }
   // A scout started anywhere (by Claude, or on another open page): follow it.
   if (m.type === 'session' && (!D || D.session.id !== m.id)) { try { mode = 'focus'; setData(await act('snapshot', { session: m.id })); homeCamera(true); toast('Showing the new scout: ' + m.name); } catch (e) {} return; }
   if (m.type === 'plan') { try { setData(await act('plan', { id: m.id })); toast('Claude sent a research plan'); } catch (e) {} }
 }
+// While a crawl runs and no push came for 5 seconds, ask anyway, so the page never sits on a
+// stale view.
+let lastPush = Date.now();
+setInterval(() => { if (running() && wsOk && Date.now() - lastPush > 5000) { lastPush = Date.now(); refresh(); } }, 2500);
 // While the socket is down, refresh while (and only while) a crawl runs.
 function startFallback() { if (fallbackT || !running()) return; fallbackT = setInterval(() => { if (!running()) return stopFallback(); refresh(); }, 2500); }
 function stopFallback() { clearInterval(fallbackT); fallbackT = null; }
@@ -221,7 +229,7 @@ function setData(snap) {
   // Keep the whole map in view while it grows and when it regroups, until the user moves it.
   if (!first && !userMoved && (running() || phaseChanged)) homeCamera(phaseChanged);
   const nowRunning = running();
-  if (nowRunning) { pcShow = true; clearTimeout(pcHideT); }
+  if (nowRunning) { if (!wasRunning) pcShow = true; clearTimeout(pcHideT); }
   if (wasRunning && !nowRunning) {
     clearTimeout(pcHideT);
     pcHideT = setTimeout(() => { pcShow = false; progress(); }, 1600);
@@ -390,8 +398,8 @@ function homeCamera(animate) {
   const list = apps().map(P);
   let x0 = 150, x1 = 850, y0 = 100, y1 = 500;
   if (list.length) { x0 = Math.min(...list.map((p) => p.x)) - 110; x1 = Math.max(...list.map((p) => p.x)) + 110; y0 = Math.min(...list.map((p) => p.y)) - 80; y1 = Math.max(...list.map((p) => p.y)) + 50; }
-  // Fit into the part of the canvas no card covers: right of the progress card, left of the panel.
-  const L = !narrow && pcShow && D && running() ? 330 : 0, R = narrow ? W : W - 290;
+  // Fit into the part of the canvas the side panel doesn't cover.
+  const L = 0, R = narrow ? W : W - 290;
   const availW = Math.max(R - L, 120), availH = (H - 30) || 1;
   const tk = Math.max(0.5, Math.min(3, availW / ((x1 - x0) * b), availH / ((y1 - y0) * b)));
   const tx = (x0 + x1) / 2 - ((L + R) / 2 - W / 2) / (tk * b), ty = (y0 + y1) / 2;
@@ -501,6 +509,7 @@ function progress() {
   if (!D || !pcShow) { pc.classList.add('gone'); return; }
   pc.classList.remove('gone');
   const pr = D.progress, done = !running();
+  pc.classList.toggle('mid', !done);
   const rows = Object.entries(pr.perStore);
   const tot = rows.reduce((t, [, v]) => ({ a: t.a + v.apps, d: t.d + v.details, r: t.r + v.reviews }), { a: 0, d: 0, r: 0 });
   let h = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>' + (done ? (D.session.status === 'failed' ? 'Scout failed' : 'Scout finished') : (D.session.plan ? 'Focused scout' : 'Scouting')) + ' · up to ' + D.session.target + ' per platform</b><span style="color:var(--mut)">' + (done ? 'saved' : pr.pct + '%') + '</span></div>';
@@ -515,7 +524,7 @@ function progress() {
   if (pr.searches.total) h += '<div class="ln"><span style="flex:1">Keyword searches</span><span>' + pr.searches.done + ' of ' + pr.searches.total + '</span></div>';
   h += '<div class="ln"><span style="flex:1">Pricing pages read</span><span>' + pr.pricingPages + '</span></div>';
   h += '<div class="ln"><span style="flex:1">Segments (AI)</span><span>' + (running() ? 'after the crawl' : D.session.groupedBy === 'claude' ? D.segments.length + ' segments, ' + D.keywords.length + ' keywords' : 'waiting for Claude') + '</span></div></div>';
-  if (!done) h += '<p style="color:var(--mut);margin:8px 0 0">Now: ' + esc(pr.step) + '</p><div class="acts"><button data-a="stop">Stop</button></div>';
+  if (!done) h += '<p style="color:var(--mut);margin:8px 0 0">Now: ' + esc(pr.step) + '</p><div class="acts"><button data-a="hidepc" title="Hide; the progress stays in the bar at the top">Hide</button><button data-a="stop">Stop</button></div>';
   else h += (D.session.error ? '<p class="err">' + esc(D.session.error) + '</p>' : '') + '<div class="acts"><button data-a="hidepc">Close</button></div>';
   pc.innerHTML = h;
 }
@@ -527,7 +536,7 @@ function groupCallout() {
 function empty() {
   const e = $('empty');
   if (D && D.apps.length) { e.textContent = ''; return; }
-  e.textContent = mode === 'plan' ? 'Adjust the plan, then start the focused scout. The map fills in as apps arrive.' : running() ? 'Collecting apps…' : D && D.session.status === 'failed' ? 'The scout failed. Try again, or a broader topic.' : 'Pick how many apps to investigate and press Scout, or plan from your idea.';
+  e.textContent = mode === 'plan' ? 'Adjust the plan, then start the focused scout. The map fills in as apps arrive.' : running() ? (pcShow ? '' : 'Collecting apps…') : D && D.session.status === 'failed' ? 'The scout failed. Try again, or a broader topic.' : 'Pick how many apps to investigate and press Scout, or plan from your idea.';
 }
 
 // ------------------------------------------------------------------ legend and tour
@@ -642,7 +651,7 @@ async function askToGroup() {
   const out = await sendToClaude(`[App Scout · session ${D.session.id}] The crawl finished with ${D.apps.length} apps. Please group them: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings the data supports.`, null);
   if (out) { askState = out; ask = true; panel(); }
 }
-$('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); } });
+$('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); empty(); } });
 
 // The page can't post into the chat itself. A question goes to the server, which hands it to
 // a watcher that wakes Claude (the plugin's monitor, or one Claude runs in the background), to
@@ -755,7 +764,7 @@ $('bPlan').onclick = () => { mode = mode === 'idea' ? 'focus' : 'idea'; panel();
 $('bExport').onclick = () => { if (!D) return toast('Run a scout first'); exFor = null; mode = mode === 'export' ? 'focus' : 'export'; panel(); };
 // Copies this map's link, so the same live map can be opened in another browser too.
 $('bBrowser').onclick = async () => { const url = D ? mapUrl(D.session.id) : location.href; try { await navigator.clipboard.writeText(url); toast('Link copied: open it in any browser, it stays in sync'); } catch (e) { toast(url); } };
-$('stat').onclick = () => { pcShow = !pcShow; progress(); };
+$('stat').onclick = () => { pcShow = !pcShow; progress(); empty(); };
 $('stat').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('stat').click(); } };
 $('bScout').onclick = async () => {
   if (busy()) return;

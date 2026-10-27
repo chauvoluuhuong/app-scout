@@ -34,10 +34,12 @@ writeFileSync(join(data, 'sessions', `${SESSION}.json`), JSON.stringify({
   apps: fx.apps, grouping: null, questions: [], view: { sizeBy: 'revenue', lens: null, focus: null }, error: null,
 }));
 // A session saved mid-crawl, to show the controls while a scout runs (no network needed).
+// Its apps sit on a spiral, as the crawl places them before Claude groups them.
+const spiral = (list) => list.map((a, i) => ({ ...a, x: 500 + 9 * Math.sqrt(i + 1) * Math.cos(i * 2.4) * 3, y: 300 + 9 * Math.sqrt(i + 1) * Math.sin(i * 2.4) * 2 }));
 const RUNNING = 'e2e-running';
 writeFileSync(join(data, 'sessions', `${RUNNING}.json`), JSON.stringify({
   id: RUNNING, ...fx.session, name: 'Scout in progress', created: now, updated: now, plan: null, status: 'crawling',
-  progress: { ...fx.session.progress, pct: 42, step: 'Reading Google Play' }, apps: fx.apps.slice(0, 20), grouping: null, questions: [], view: {}, error: null,
+  progress: { ...fx.session.progress, pct: 42, step: 'Reading Google Play' }, apps: spiral(fx.apps.slice(0, 20)), grouping: null, questions: [], view: {}, error: null,
 }));
 
 const procs = [];
@@ -286,6 +288,34 @@ await step('While a scout runs, Scout and its controls are off', async () => {
   await A.go(link.replace(/s=[^&]+/, `s=${RUNNING}`));
   await A.waitFor(`document.getElementById('bScout').disabled`, 'the disabled Scout button');
   return 'Scout and the app count read "Scouting…" and are off while crawling; back on for a finished session';
+});
+
+await step('Crawl progress sits in the middle of the map', async () => {
+  await A.waitFor(`document.getElementById('pc').classList.contains('mid')`, 'the centred progress card');
+  const r = await A.js(`(() => { const st = document.getElementById('stage').getBoundingClientRect(), pc = document.getElementById('pc').getBoundingClientRect(), pn = document.getElementById('pn').getBoundingClientRect();
+    return { dx: Math.round((pc.left + pc.width / 2) - (st.left + (pn.left - st.left) / 2)), dy: Math.round((pc.top + pc.height / 2) - (st.top + st.height / 2)), overlap: pc.right > pn.left }; })()`);
+  if (Math.abs(r.dx) > 30 || Math.abs(r.dy) > 30 || r.overlap) throw new Error('progress card off centre: ' + JSON.stringify(r));
+  return `centred on the map, left of the side panel (off by ${r.dx}px, ${r.dy}px); Hide and Stop under it`;
+});
+
+// Claude Desktop runs one App Scout server per chat and can leave old ones running. The crawl
+// runs in one server; the page here is open on another, and still follows it live.
+await step('A page on another App Scout server follows the crawl live', async () => {
+  const other = startServer();
+  await other('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e-2', version: '0' } });
+  const otherLink = mapLink(await other('tools/call', { name: 'show_map', arguments: { session: RUNNING } }));
+  if (new URL(otherLink).port === new URL(link).port) throw new Error('the second server took the same port');
+  await A.go(otherLink);
+  await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 42%'`, 'the crawl at 42%');
+  const file = join(data, 'sessions', `${RUNNING}.json`);
+  const s = JSON.parse(readFileSync(file, 'utf8'));
+  // What the crawling server writes as it goes, then when it finishes.
+  writeFileSync(file, JSON.stringify({ ...s, apps: spiral(fx.apps.slice(0, 40)), progress: { ...s.progress, pct: 77, step: 'Reading prices and reviews' } }));
+  await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 77%'`, 'the progress pushed from the other server');
+  writeFileSync(file, JSON.stringify({ ...s, status: 'grouping', apps: spiral(fx.apps), progress: { ...s.progress, pct: 100, step: 'Waiting for Claude to group the apps' } }));
+  await A.waitFor(`document.getElementById('stat').textContent.startsWith('${fx.apps.length} apps')`, 'the finished crawl');
+  await A.waitFor(`!document.getElementById('pc').classList.contains('mid')`, 'the card back in the corner');
+  return `42% → 77% → finished with ${fx.apps.length} apps, pushed from the server that crawled to a page on port ${new URL(otherLink).port}`;
 });
 
 await step('Export downloads the report', async () => {
