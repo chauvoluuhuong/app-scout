@@ -1,7 +1,7 @@
 {
   "name": "app-scout",
   "displayName": "App Scout",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Research the app market on a live map: crawl the App Store, Google Play, Chrome Web Store, Workspace Marketplace and GitHub, group apps into segments with Claude, spot openings, and keep every research session.",
   "author": {
     "name": "Chau Vo Luu Huong",
@@ -11,7 +11,7 @@
   "homepage": "https://github.com/chauvoluuhuong/app-scout",
   "repository": "https://github.com/chauvoluuhuong/app-scout",
   "license": "MIT",
-  "keywords": ["market-research", "app-store", "google-play", "chrome-extensions", "competitor-analysis", "mcp-apps", "product-ideas"],
+  "keywords": ["market-research", "app-store", "google-play", "chrome-extensions", "competitor-analysis", "product-ideas"],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://github.com/chauvoluuhuong/app-scout#readme",
   "supportUrl": "https://github.com/chauvoluuhuong/app-scout/issues",

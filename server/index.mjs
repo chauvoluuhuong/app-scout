@@ -2,18 +2,19 @@
 // App Scout MCP server: JSON-RPC 2.0 over stdio, one message per line (MCP stdio transport).
 // stdout carries only protocol messages; every log goes to stderr.
 import { createInterface } from 'node:readline';
-import { callTool, listResources, listTools, readResource, setClientCapabilities } from './tools.mjs';
-import { handleAction } from './actions.mjs';
+import { callTool, listTools } from './tools.mjs';
+import { handleAction, hasQuestions, takeQuestions } from './actions.mjs';
 import { startWeb } from './web/server.mjs';
 import { log } from './lib/util.mjs';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 
-const INSTRUCTIONS = `App Scout researches the app market for the user and shows it on a live map.
+const INSTRUCTIONS = `App Scout researches the app market for the user and shows it on a live map: a local web page whose link ("Map: http://127.0.0.1:...") ends the result of scout, show_map, plan_research and scout_status.
+Showing the map: the first time a result carries a map link in this conversation, open it. If you have a built-in browser (for example the Claude desktop app's browser pane), open the link there. Always also give the user the link so they can open it in their own browser too. Any number of pages can be open at once (in-app and in the browser); they share one state and update live, and open pages switch to a new scout by themselves, so don't reopen the link for every result.
 Workflow: scout (topic optional, apps default 100) -> scout_status until status is "grouping" -> list_apps -> save_grouping (4-8 segments, 2-4 keywords each naming app ids, openings tied to apps) -> summarise in 3 lines.
-If the user describes their own product idea, call plan_research first and let them start a focused scout from the plan.
-Questions asked from the map arrive as user messages that include a session id and the selection's context; use get_view_state for more, and answer_question to show the answer on the map.
+If the user describes their own product idea, call plan_research first and let them start a focused scout from the plan on the map.
+Questions the user asks on the map reach you as lines starting "[App Scout map question q-… · session …]" with the map context: as a notification from the plugin's map-questions monitor, or attached to the user's next message. Answer each one in the chat right away (use list_apps or get_view_state if you need more), then call answer_question with its session and question_id so every open page shows the answer. scout_status and show_map also list unanswered ones.
 Every estimate is labelled est. with its method; never present one as a measured number.`;
 
 function send(msg) {
@@ -25,10 +26,9 @@ async function handle(msg) {
   switch (method) {
     case 'initialize': {
       const v = SUPPORTED.includes(params?.protocolVersion) ? params.protocolVersion : SUPPORTED[1];
-      setClientCapabilities(params?.capabilities);
       return {
         protocolVersion: v,
-        capabilities: { tools: { listChanged: false }, resources: { listChanged: false } },
+        capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'app-scout', title: 'App Scout', version: VERSION },
         instructions: INSTRUCTIONS,
       };
@@ -39,12 +39,6 @@ async function handle(msg) {
       return { tools: listTools() };
     case 'tools/call':
       return callTool(params?.name, params?.arguments);
-    case 'resources/list':
-      return { resources: listResources() };
-    case 'resources/templates/list':
-      return { resourceTemplates: [] };
-    case 'resources/read':
-      return readResource(params?.uri);
     case 'prompts/list':
       return { prompts: [] };
     default:
@@ -75,5 +69,5 @@ rl.on('line', async (line) => {
 });
 rl.on('close', () => process.exit(0));
 
-startWeb(handleAction);
+startWeb(handleAction, { has: hasQuestions, take: takeQuestions });
 log(`v${VERSION} ready`);

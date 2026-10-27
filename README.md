@@ -8,11 +8,11 @@ App Scout is a Claude plugin for researching the app market before you build you
 - **Crawl progress you can see.** Per store: apps found, details read, reviews read, and when a store asks us to slow down.
 - **Overview mode.** Ask for nothing and it reads the overall charts; give it a topic and it searches for it.
 - **Plan mode.** Describe your idea; Claude proposes customers, product forms and segments to scout; you edit the plan and start a focused scout.
-- **Ask Claude from the map.** Every selection (category, segment, keyword, app, opening) has an Ask Claude button that sends your question with its full context: the path, the numbers on screen and the items around it.
+- **Ask Claude from the map.** Every selection (category, segment, keyword, app, opening) has an Ask Claude button that sends your question with its full context: the path, the numbers on screen and the items around it. The plugin's background monitor hands it to Claude right away, and the answer appears on the map. If the monitor isn't running, the map tells you to send any message in the chat, and your question rides along with it.
 - **Detail tables.** Every number in the side panel opens a sortable table.
-- **Lenses.** Leaders, money gaps (many users, little revenue), premium niches and unknown revenue.
+- **Lenses.** In the bar under the map: leaders, money gaps (many users, little revenue), premium niches and unknown revenue. Dot size is always estimated revenue and brightness is users.
 - **Sessions and export.** Saved after every step. Export as a Markdown report, a CSV of apps, or JSON with everything.
-- **Open in browser.** The same map opens in a browser tab, full screen, and stays in sync with the chat.
+- **One map, open anywhere.** Each tool ends with the map's link. Claude opens it in the Claude desktop app's built-in browser when it can, and the same link works in any browser. Every open copy updates live and follows a new scout or plan by itself.
 
 ## Install
 
@@ -33,8 +33,8 @@ App Scout's MCP server runs on your computer, so it loads where Claude starts lo
 
 | Surface | What you get |
 |---|---|
-| Claude Code (terminal, IDE, desktop Code tab) | Every tool and skill, and the live map in your browser through the link each tool returns |
-| Cowork sessions on your computer | Every tool and skill; the map shows inside the conversation where MCP Apps render, and Open in browser always works |
+| Claude Code desktop app (Code tab) | Every tool and skill; Claude opens the live map in the app's built-in browser, and the same link works in your own browser |
+| Claude Code (terminal, IDE) and Cowork sessions on your computer | Every tool and skill, and the live map in your browser through the link each tool returns |
 | Chat on claude.ai, desktop and mobile | Not supported: chat doesn't start local plugin servers |
 
 ## Tools
@@ -66,7 +66,8 @@ This section lists everything the plugin does on your computer and on the networ
 
   Requests go one at a time per site with a 1.2–3 second gap, and the crawler waits when a site answers 429 or 503. It never rotates IP addresses, solves CAPTCHAs or disguises its traffic.
 - **It sends nothing about you anywhere.** No analytics, no telemetry, no account, no API keys. The only outbound requests are the store reads above, and they carry only your search topic.
-- **It opens a local web server on `127.0.0.1`** (port 4777, or the next free one up to 4797) for the Open in browser page, its buttons, exports, and a WebSocket that keeps the chat and the browser in sync. It listens on your own computer only, checks the `Host` header, and requires a random token generated at each start on every request.
+- **It opens a local web server on `127.0.0.1`** (port 4777, or the next free one up to 4797) for the map page, its buttons, exports, and a WebSocket that keeps every open copy of the map in sync with the server. It listens on your own computer only, checks the `Host` header, and requires a random token generated at each start on every request. While it runs it writes its port and token to `live/<pid>.json` in the data directory, and removes the file when it stops.
+- **It runs a background monitor and a prompt hook in your Claude Code session.** The `map-questions` monitor (`server/watch.mjs`) waits on that local server and prints each question you ask on the map, which Claude Code shows to Claude. The `UserPromptSubmit` hook (`server/hook.mjs`) adds questions the monitor didn't deliver to your next message. Both find the server of their own session through the `live/` files and talk only to `127.0.0.1`; they print nothing when there is no question.
 - **It stores data on your computer only:** sessions, preferences and exports as JSON and text files in the plugin's data directory (`~/.claude/plugins/data/app-scout…`, or `~/.app-scout` when run on its own). Uninstalling the plugin removes that directory unless you keep it.
 - **Store data you collect** stays on your computer. Please respect each store's terms when you use or share it.
 
@@ -78,9 +79,9 @@ Revenue is estimated with the same method as the app-market-research skill: user
 
 ```bash
 npm test                                  # unit and protocol tests, offline
+node scripts/e2e.mjs                      # end-to-end: the real server and two map pages in headless Chrome, screenshots in e2e-out/
 node scripts/try.mjs "meeting notes" 20   # run a real scout through the MCP server
 node scripts/serve-dev.mjs                # serve the browser map for the dev sessions (token "dev")
-node scripts/host-harness.mjs <session>   # a minimal MCP Apps host on http://127.0.0.1:4790
 claude plugin validate . --strict
 ```
 
