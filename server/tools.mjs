@@ -1,36 +1,46 @@
 // MCP tools. Each returns a short text summary for Claude. The map itself is a web page served
 // by this process (server/web/server.mjs): tools that show something end with its link, and
-// Claude opens it in its in-app browser or hands it to the user.
-import { writeFileSync } from 'node:fs';
+// Claude opens it in its in-app browser or hands it to the user. In hosts that render MCP Apps
+// (Claude Desktop Chat), the same tools also show the dock (ui/dock.html), a small card that
+// posts map questions into the chat when the user presses Send; its own calls use `dock`.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join as pjoin } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { normalizePlan, postPlan, startScout } from './actions.mjs';
+import { dock, normalizePlan, postPlan, setCurrent, startScout } from './actions.mjs';
 import { applyGrouping, ALL_STORES, isRunning, STORE_LABEL } from './pipeline.mjs';
-import { getSession, listSessions, save, EXPORTS } from './sessions.mjs';
+import { getSession, listSessions, save, DATA_DIR, EXPORTS } from './sessions.mjs';
 import { summary } from './viewmodel.mjs';
 import { exportSession, PARTS } from './export.mjs';
-import { sendTo, webInfo } from './web/server.mjs';
+import { listening, sendTo, webInfo } from './web/server.mjs';
 import { waitFor, publish } from './bus.mjs';
 
 const SESSION = { type: 'string', description: 'Session id, as returned by scout or list_sessions.' };
+export const DOCK_URI = 'ui://app-scout/dock.html';
+export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+const DOCK_FILE = pjoin(dirname(fileURLToPath(import.meta.url)), '..', 'ui', 'dock.html');
+const withDock = { ui: { resourceUri: DOCK_URI } };
+const WATCH = pjoin(dirname(fileURLToPath(import.meta.url)), 'watch.mjs');
 
 const TOOLS = [
   {
     name: 'scout',
     title: 'Scout the app market',
     description:
-      'Start a market scout: collect up to `apps` apps (default 100) from the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub, and show them on a live map. ' +
+      'Start a market scout: collect up to `apps` apps from each platform (default 100 per platform) from the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub, and show them on a live map. ' +
       'With no topic it reads the overall charts and categories; with a topic (for example "ai meeting notes") it searches the stores for it. ' +
       'Returns immediately with a session id while the crawl runs. Then call scout_status until the status is "grouping", call list_apps, and call save_grouping.',
     inputSchema: {
       type: 'object',
       properties: {
         topic: { type: 'string', description: 'Optional category or keyword to search for. Leave out to scout the overall charts.' },
-        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'How many apps to investigate. Default 100.' },
+        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'The most apps to collect from each platform (not in total). Default 100.' },
         stores: { type: 'array', items: { type: 'string', enum: ALL_STORES }, description: 'Stores to read. Default: all five.' },
         market: { type: 'string', enum: ['us', 'vn'], default: 'us', description: 'Store country. us (default) or vn.' },
       },
     },
     annotations: { readOnlyHint: false, openWorldHint: true },
+    _meta: withDock,
   },
   {
     name: 'scout_status',
@@ -96,10 +106,11 @@ const TOOLS = [
         forms: { type: 'array', items: { type: 'string' }, description: 'Product forms, such as mobile app, Chrome extension, web app, Workspace add-on.' },
         segments: { type: 'array', items: { type: 'object', required: ['name', 'phrases'], properties: { name: { type: 'string' }, phrases: { type: 'array', items: { type: 'string' } } } } },
         stores: { type: 'array', items: { type: 'string', enum: ALL_STORES } },
-        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100 },
+        apps: { type: 'integer', minimum: 20, maximum: 500, default: 100, description: 'The most apps to collect from each platform. Default 100.' },
       },
     },
     annotations: { readOnlyHint: true },
+    _meta: withDock,
   },
   {
     name: 'show_map',
@@ -107,6 +118,7 @@ const TOOLS = [
     description: 'Reopen a saved research session: returns its summary and its map link, which opens where the user left off.',
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION } },
     annotations: { readOnlyHint: true },
+    _meta: withDock,
   },
   {
     name: 'list_sessions',
@@ -128,6 +140,7 @@ const TOOLS = [
     description: 'Record your answer to a question asked from the map, so the map (and the browser page) shows it next to the question.',
     inputSchema: { type: 'object', required: ['session', 'question_id', 'answer'], properties: { session: SESSION, question_id: { type: 'string' }, answer: { type: 'string' } } },
     annotations: { readOnlyHint: false },
+    _meta: withDock,
   },
   {
     name: 'export_session',
@@ -136,11 +149,23 @@ const TOOLS = [
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION, format: { type: 'string', enum: ['json', 'csv', 'md'], default: 'md' }, parts: { type: 'array', items: { type: 'string', enum: PARTS } } } },
     annotations: { readOnlyHint: false },
   },
+  {
+    name: 'dock',
+    title: 'App Scout card',
+    description: 'Used by the App Scout card shown in the chat, for its own buttons. Not for the model.',
+    inputSchema: { type: 'object', required: ['op'], properties: { op: { type: 'string', enum: ['hello', 'poll', 'sent'] }, id: { type: 'string' }, qid: { type: 'string' } } },
+    annotations: { readOnlyHint: false },
+    _meta: { ui: { resourceUri: DOCK_URI, visibility: ['app'] } },
+  },
 ];
 
 export const listTools = () => TOOLS;
 
-const text = (t, isError) => ({ content: [{ type: 'text', text: t }], ...(isError ? { isError: true } : {}) });
+const text = (t, isError, structured) => ({ content: [{ type: 'text', text: t }], ...(structured ? { structuredContent: structured } : {}), ...(isError ? { isError: true } : {}) });
+
+// Where no monitor runs (the Claude Code desktop app), Claude keeps a one-shot watcher running
+// in the background: it ends when the user asks on the map, which wakes Claude with the question.
+const watchLine = () => (listening() ? '' : `\nMap questions: if you can run shell commands in the background, start this now and again after each answer (it ends when the user asks on the map, and its output is the question): node "${WATCH}" --once "${DATA_DIR}"`);
 
 /** The line every map-showing tool ends with. */
 const mapLine = (url) => (url ? `\nMap: ${url}` : '\nThe map page is not running (the local port could not open).');
@@ -155,7 +180,8 @@ function appLine(a) {
 const HANDLERS = {
   async scout(a) {
     const s = startScout({ topic: a.topic, apps: a.apps, stores: a.stores, market: a.market });
-    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url));
+    setCurrent(s.id);
+    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from each of ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url) + watchLine());
   },
   async scout_status(a) {
     const s = getSession(a.session);
@@ -184,7 +210,8 @@ const HANDLERS = {
   },
   async show_map(a) {
     const s = getSession(a.session);
-    return text(summary(s, webInfo(s.id)));
+    setCurrent(s.id);
+    return text(summary(s, webInfo(s.id)) + watchLine());
   },
   async list_sessions() {
     const l = listSessions();
@@ -205,7 +232,11 @@ const HANDLERS = {
     save(s, { now: true });
     sendTo(s.id, { type: 'answer', question: q });
     publish({ session: s.id, kind: 'question' });
-    return text(`Saved the answer to ${q.id}; the map shows it.`);
+    setCurrent(s.id);
+    return text(`Saved the answer to ${q.id}; the map shows it.` + watchLine());
+  },
+  async dock(a) {
+    return text('ok', false, dock(a.op, a));
   },
   async export_session(a) {
     const s = getSession(a.session);
@@ -225,4 +256,13 @@ export async function callTool(name, args) {
   } catch (e) {
     return text(e.message, true);
   }
+}
+
+export function listResources() {
+  return [{ uri: DOCK_URI, name: 'App Scout card', description: 'Map link and Send-to-Claude for questions asked on the map', mimeType: RESOURCE_MIME_TYPE }];
+}
+
+export function readResource(uri) {
+  if (uri !== DOCK_URI) throw new Error(`Unknown resource ${uri}`);
+  return { contents: [{ uri: DOCK_URI, mimeType: RESOURCE_MIME_TYPE, text: readFileSync(DOCK_FILE, 'utf8'), _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: false } } }] };
 }

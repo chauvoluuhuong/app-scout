@@ -150,6 +150,13 @@ await step('Toolbar icons sit on the text line', async () => {
   return `${off.length} buttons, every icon within ${worst.toFixed(1)}px of centre`;
 });
 
+await step('The app count is per platform', async () => {
+  const opt = await A.js(`document.querySelector('#nApps option:checked').textContent`);
+  const found = await A.js(`document.querySelector('[data-m="0"]').innerText.replace(/\\s+/g, ' ')`);
+  if (!/\/ platform$/.test(opt) || !/≤50\/platform/.test(found)) throw new Error(`labels still read as a total: "${opt}", "${found}"`);
+  return `selector "${opt}" · panel "${found}"`;
+});
+
 await step('First-run tour shows how to read the map', async () => {
   await A.waitFor(`document.getElementById('tour').style.display === 'block'`, 'the tour');
   const txt = await A.js(`document.getElementById('tour').innerText`);
@@ -221,7 +228,7 @@ await step('Ask Claude: the monitor hands the question to Claude', async () => {
   await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, '"Claude has your question" on the page');
   const line = notified.trim().split('\n').at(-1) || '';
   qid = (line.match(/question (q-[a-f0-9]+)/) || [])[1];
-  if (!qid || !/map context: \{.*"focus"/.test(line)) throw new Error('the monitor printed no question with its context: ' + line);
+  if (!qid || !/Looking at: .+ › .+ \(app\) · /.test(line)) throw new Error('the monitor printed no question with its context: ' + line);
   return `monitor notification: ${line.slice(0, 90)}…`;
 });
 
@@ -288,6 +295,64 @@ await step('Export downloads the report', async () => {
   if (!ok) throw new Error('the export link failed');
   await A.js(`document.getElementById('bExport').click()`);
   return ok;
+});
+
+// ------------------------------------------------------------------ the card in a chat host
+// Claude Desktop Chat renders MCP Apps. scripts/host-harness.mjs plays that host: it runs its
+// own MCP server (on a copy of the data, so the two servers don't share files) and shows each
+// tool's App Scout card at the bottom of a simulated chat.
+const chatData = mkdtempSync(join(tmpdir(), 'app-scout-e2e-chat-'));
+cpSync(data, chatData, { recursive: true });
+rmSync(join(chatData, 'live'), { recursive: true, force: true });
+const harnessUrl = await new Promise((resolve, reject) => {
+  const p = spawn(process.execPath, [join(root, 'scripts/host-harness.mjs')], { env: { ...process.env, CLAUDE_PLUGIN_DATA: chatData, HARNESS_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  procs.push(p);
+  p.stdout.on('data', (d) => { const m = String(d).match(/harness on (http:\/\/\S+)/); if (m) resolve(m[1]); });
+  p.on('exit', (c) => reject(new Error('harness exited ' + c)));
+});
+const card = (n) => `document.querySelectorAll('iframe')[${n}].contentDocument`;
+let chatLink = '', chatQ = '';
+
+await step('Chat: the App Scout card appears under show_map', async () => {
+  await B.go(harnessUrl);
+  const r = await B.js(`renderTool('show_map', { session: '${SESSION}' })`);
+  chatLink = mapLink(r);
+  await B.waitFor(`${card(0)}.body.innerText.includes('Ask Claude on the map')`, 'the idle card');
+  shotOf = B;
+  return (await B.js(`${card(0)}.body.innerText`)).replace(/\s+/g, ' ').slice(0, 120);
+});
+
+await step('Chat: a question from the map waits on the card with Copy and Send', async () => {
+  await A.go(chatLink);
+  await A.waitFor(`document.getElementById('stat').textContent.includes('46 apps')`, 'the map of the chat session');
+  await A.click('[data-a="ask"]');
+  await A.click('[data-s]');
+  await A.click('[data-a="send"]');
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('press Send on the App Scout card')`, 'the page pointing at the card');
+  await B.waitFor(`${card(0)}.body.innerText.includes('Prompt ready from the map')`, 'the prompt on the card');
+  shotOf = B;
+  return 'page: "' + (await A.js(`document.getElementById('ast').textContent`)) + '"';
+});
+
+await step('Chat: Enter on the card posts the prompt as the user message', async () => {
+  await B.js(`${card(0)}.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
+  await B.waitFor(`window.messages.length === 1`, 'the message in the chat');
+  const msg = await B.js(`window.messages[0]`);
+  chatQ = (msg.match(/question (q-[a-f0-9]+)/) || [])[1];
+  if (!chatQ || !/\nLooking at: .+\nAnswer here/.test(msg)) throw new Error('posted message lacks the question or its context: ' + msg);
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, 'the page to see it was sent');
+  await B.waitFor(`${card(0)}.body.innerText.includes('Sent. Claude is answering')`, 'the card to say sent');
+  shotOf = B;
+  return msg.slice(0, 100) + '…';
+});
+
+await step('Chat: after the answer a new card appears below; the old one steps aside', async () => {
+  await B.js(`renderTool('answer_question', { session: '${SESSION}', question_id: '${chatQ}', answer: 'Chat answer: subscriptions drive the money here (est.).' })`);
+  await B.waitFor(`document.querySelectorAll('iframe').length === 2 && ${card(1)}.body.innerText.includes('Ask Claude on the map')`, 'the new card');
+  await B.waitFor(`${card(0)}.body.innerText.includes('moved to the newest card')`, 'the old card to step aside');
+  await A.waitFor(`(document.getElementById('ans') || {}).innerText?.includes('Chat answer')`, 'the answer on the map');
+  shotOf = B;
+  return 'old card: "moved to the newest card below"; the map shows the answer';
 });
 
 cleanup();
