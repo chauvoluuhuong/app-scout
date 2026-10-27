@@ -1,6 +1,12 @@
 // Sessions are plain JSON files, one per research, in the plugin's data directory
 // (${CLAUDE_PLUGIN_DATA}, kept across plugin updates) or ~/.app-scout when run on its own.
-import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync } from 'node:fs';
+//
+// Several App Scout servers can share this directory: Claude Desktop starts one per chat (and
+// may leave an old one running), Claude Code one per session. A scout runs in one of them, but
+// the map page can be open on another. So a session is read again when another server has
+// written it, a stale copy never overwrites a newer file, and onExternalChange() reports writes
+// made by other servers, so their pages update live.
+import { mkdirSync, readFileSync, readdirSync, renameSync, statSync, watch, writeFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -14,6 +20,14 @@ mkdirSync(EXPORTS, { recursive: true });
 
 const cache = new Map();
 const timers = new Map();
+const stamps = new Map(); // id -> mtime of the file when this server last read or wrote it
+const pinned = new Set();  // sessions this server is crawling: its copy is the live one
+
+const mtime = (f) => { try { return statSync(f).mtimeMs; } catch { return 0; } };
+
+/** While this server crawls a session, its in-memory copy wins over the file. */
+export const pin = (id) => pinned.add(id);
+export const unpin = (id) => pinned.delete(id);
 
 function file(id) {
   if (!/^[a-z0-9-]+$/.test(id)) throw new Error(`Invalid session id: ${id}`);
@@ -46,12 +60,23 @@ export function newSession({ name, topic = null, stores, market = 'us', apps = 1
 }
 
 export function getSession(id) {
-  if (cache.has(id)) return cache.get(id);
   const f = file(id);
-  if (!existsSync(f)) throw new Error(`No session "${id}". Use list_sessions to see saved sessions.`);
-  const s = JSON.parse(readFileSync(f, 'utf8'));
-  cache.set(id, s);
-  return s;
+  const had = cache.get(id);
+  if (had && (pinned.has(id) || mtime(f) <= (stamps.get(id) || 0))) return had;
+  if (!existsSync(f)) {
+    if (had) return had;
+    throw new Error(`No session "${id}". Use list_sessions to see saved sessions.`);
+  }
+  const t = mtime(f);
+  const fresh = JSON.parse(readFileSync(f, 'utf8'));
+  stamps.set(id, t);
+  if (!had) {
+    cache.set(id, fresh);
+    return fresh;
+  }
+  // Another server wrote it: refresh in place, so references held elsewhere stay current.
+  for (const k of Object.keys(had)) delete had[k];
+  return Object.assign(had, fresh);
 }
 
 export function listSessions() {
@@ -70,10 +95,43 @@ export function listSessions() {
 }
 
 function saveNow(s) {
-  s.updated = nowIso();
   const f = file(s.id);
+  // Another server wrote a newer copy since we read ours, and we are not the one crawling:
+  // ours is stale, so keep theirs (our next read picks it up).
+  const newer = stamps.has(s.id) && mtime(f) > stamps.get(s.id);
+  if (newer && !pinned.has(s.id)) return;
+  // The crawling server keeps its apps and progress, but takes the questions and the view
+  // another server's page added meanwhile.
+  if (newer) {
+    try {
+      const disk = JSON.parse(readFileSync(f, 'utf8'));
+      const mine = new Map(s.questions.map((q) => [q.id, q]));
+      for (const q of disk.questions || []) {
+        if (!mine.has(q.id)) s.questions.push(q);
+        else if (q.answer && !mine.get(q.id).answer) Object.assign(mine.get(q.id), q);
+      }
+      s.view = { ...s.view, ...(disk.view || {}) };
+    } catch {}
+  }
+  s.updated = nowIso();
   writeFileSync(f + '.tmp', JSON.stringify(s));
   renameSync(f + '.tmp', f);
+  stamps.set(s.id, mtime(f));
+}
+
+/** Call fn(id, isNew) when another server writes a session file. */
+export function onExternalChange(fn) {
+  try {
+    watch(SESSIONS, (_, name) => {
+      if (!name || !name.endsWith('.json')) return;
+      const id = name.slice(0, -5);
+      const t = mtime(join(SESSIONS, name));
+      if (!t || t === stamps.get(id)) return; // gone, or our own write
+      fn(id, !cache.has(id));
+    });
+  } catch {
+    // no file watching here: pages still refresh while a crawl runs
+  }
 }
 
 /** Save soon (coalesces bursts of progress updates into one write a second). */

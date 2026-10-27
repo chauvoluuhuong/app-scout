@@ -9,7 +9,7 @@ import { onHttpEvent } from './lib/http.mjs';
 import { log, queryMatch, slug } from './lib/util.mjs';
 import { assignTiers, clusterLayout, estimateRevenue, monthlyPrice, revenueBucket, sameProduct, spiralLayout } from './analysis.mjs';
 import { publish } from './bus.mjs';
-import { save } from './sessions.mjs';
+import { pin, save, unpin } from './sessions.mjs';
 
 export const ALL_STORES = ['appstore', 'play', 'chrome', 'workspace', 'github'];
 export const STORE_LABEL = { appstore: 'App Store', play: 'Google Play', chrome: 'Chrome Web Store', workspace: 'Workspace', github: 'GitHub' };
@@ -206,6 +206,7 @@ export async function runScout(s) {
   if (running.has(s.id)) return;
   const ctl = { cancel: false };
   running.set(s.id, ctl);
+  pin(s.id);
   current = s;
   s.status = 'crawling';
   s.error = null;
@@ -235,6 +236,7 @@ export async function runScout(s) {
     running.delete(s.id);
     if (current === s) current = null;
     save(s, { now: true });
+    unpin(s.id);
     publish({ session: s.id, kind: 'phase' });
   }
 }

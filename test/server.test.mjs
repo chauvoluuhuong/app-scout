@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,6 +126,49 @@ test('every open page gets the same pushes (in-app browser and browser tab toget
     pages.forEach((p) => p.ws.close());
   } finally {
     srv.kill();
+  }
+});
+
+test('a page on another App Scout server sees the scout live (several chats share one data folder)', async () => {
+  // Claude Desktop runs one server per chat and can leave old ones running; the map page may be
+  // open on any of them while the scout runs in another.
+  const dir = savedSessionDir();
+  const a = start(dir), b = start(dir);
+  try {
+    await a.rpc('initialize', INIT);
+    await b.rpc('initialize', INIT);
+    const link = new URL(mapLink((await b.rpc('tools/call', { name: 'show_map', arguments: { session: 'saved-abc123' } })).result));
+    const t = link.searchParams.get('t');
+    const call = async (action, args) => (await fetch(`${link.origin}/api/action?t=${t}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, args }) })).json();
+    assert.equal((await call('snapshot', { session: 'saved-abc123' })).session.status, 'grouping');
+    const got = [];
+    const ws = new WebSocket(`ws://${link.host}/ws?t=${t}&s=saved-abc123`);
+    await new Promise((r, j) => { ws.onmessage = (e) => { const m = JSON.parse(e.data); got.push(m); if (m.type === 'hello') r(); }; ws.onerror = j; });
+    const until = async (pred) => { for (let i = 0; i < 60 && !got.some(pred); i++) await new Promise((r) => setTimeout(r, 50)); return got.some(pred); };
+
+    // Server A groups the apps; B's page hears about it and B serves the new data.
+    const g = (await a.rpc('tools/call', { name: 'save_grouping', arguments: { session: 'saved-abc123', segments: [{ name: 'Dev tools', keywords: [{ name: 'Repos', app_ids: ['a1'] }] }], openings: [] } })).result;
+    assert.notEqual(g.isError, true);
+    assert.ok(await until((m) => m.type === 'changed'), "B's page is told the session changed");
+    const snap = await call('snapshot', { session: 'saved-abc123' });
+    assert.equal(snap.session.status, 'ready');
+    assert.equal(snap.segments[0].name, 'Dev tools');
+
+    // B saving the view afterwards keeps A's grouping on disk.
+    await call('view', { session: 'saved-abc123', state: { lens: 'leaders' } });
+    await new Promise((r) => setTimeout(r, 1300));
+    const disk = JSON.parse(readFileSync(join(dir, 'sessions', 'saved-abc123.json'), 'utf8'));
+    assert.equal(disk.status, 'ready');
+    assert.equal(disk.grouping.segments[0].name, 'Dev tools');
+    assert.equal(disk.view.lens, 'leaders');
+
+    // A scout another server starts: B's open page follows it.
+    writeFileSync(join(dir, 'sessions', 'new-def456.json'), JSON.stringify({ ...disk, id: 'new-def456', name: 'New scout', status: 'crawling', apps: [], grouping: null }));
+    assert.ok(await until((m) => m.type === 'session' && m.id === 'new-def456'), "B's page follows the new scout");
+    ws.close();
+  } finally {
+    a.srv.kill();
+    b.srv.kill();
   }
 });
 
