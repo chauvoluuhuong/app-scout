@@ -1,21 +1,17 @@
-// MCP tools. Model tools return a short text summary (for Claude) and, for UI tools, the map
-// snapshot in structuredContent (for the view). The view's own buttons use ui_action, which
-// is hidden from the model.
-import { readFileSync, writeFileSync } from 'node:fs';
+// MCP tools. Each returns a short text summary for Claude. The map itself is a web page served
+// by this process (server/web/server.mjs): tools that show something end with its link, and
+// Claude opens it in its in-app browser or hands it to the user.
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { handleAction, normalizePlan, startScout } from './actions.mjs';
+import { normalizePlan, postPlan, startScout } from './actions.mjs';
 import { applyGrouping, ALL_STORES, isRunning, STORE_LABEL } from './pipeline.mjs';
 import { getSession, listSessions, save, EXPORTS } from './sessions.mjs';
 import { summary } from './viewmodel.mjs';
 import { exportSession, PARTS } from './export.mjs';
-import { connectOrigins, sendTo, UI_FILE, webInfo } from './web/server.mjs';
+import { sendTo, webInfo } from './web/server.mjs';
 import { waitFor, publish } from './bus.mjs';
 
-export const UI_URI = 'ui://app-scout/map.html';
-export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
-
 const SESSION = { type: 'string', description: 'Session id, as returned by scout or list_sessions.' };
-const ui = (visibility = ['model', 'app']) => ({ ui: { resourceUri: UI_URI, visibility } });
 
 const TOOLS = [
   {
@@ -35,7 +31,6 @@ const TOOLS = [
       },
     },
     annotations: { readOnlyHint: false, openWorldHint: true },
-    _meta: ui(),
   },
   {
     name: 'scout_status',
@@ -105,15 +100,13 @@ const TOOLS = [
       },
     },
     annotations: { readOnlyHint: true },
-    _meta: ui(),
   },
   {
     name: 'show_map',
     title: 'Open a saved session',
-    description: 'Show the map of a saved research session, where the user left off.',
+    description: 'Reopen a saved research session: returns its summary and its map link, which opens where the user left off.',
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION } },
     annotations: { readOnlyHint: true },
-    _meta: ui(),
   },
   {
     name: 'list_sessions',
@@ -143,29 +136,15 @@ const TOOLS = [
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION, format: { type: 'string', enum: ['json', 'csv', 'md'], default: 'md' }, parts: { type: 'array', items: { type: 'string', enum: PARTS } } } },
     annotations: { readOnlyHint: false },
   },
-  {
-    name: 'ui_action',
-    title: 'Map view action',
-    description: 'Used by the map view for its own buttons.',
-    inputSchema: { type: 'object', required: ['action'], properties: { action: { type: 'string' }, args: { type: 'object' } } },
-    _meta: ui(['app']),
-  },
 ];
 
 export const listTools = () => TOOLS;
 
-const text = (t, structured, isError) => ({ content: [{ type: 'text', text: t }], ...(structured ? { structuredContent: structured } : {}), ...(isError ? { isError: true } : {}) });
+const text = (t, isError) => ({ content: [{ type: 'text', text: t }], ...(isError ? { isError: true } : {}) });
 
-// Some hosts pass structuredContent to the model as well as to the view, so model-visible
-// tools send only a pointer (session id and links); the view fetches the map data itself
-// through ui_action. Hosts that don't render MCP Apps get no structuredContent at all.
-let uiHost = false;
-export function setClientCapabilities(caps) {
-  const ui = caps?.extensions?.['io.modelcontextprotocol/ui'];
-  uiHost = !!(ui && (ui.mimeTypes || []).includes(RESOURCE_MIME_TYPE));
-}
-const forView = (payload) => (uiHost ? payload : null);
-const mapPointer = (s) => forView({ view: 'map', session: { id: s.id, name: s.name, status: s.status }, web: webInfo(s.id) });
+/** The line every map-showing tool ends with. */
+const mapLine = (url) => (url ? `\nMap: ${url}` : '\nThe map page is not running (the local port could not open).');
+const planUrl = (id) => { const w = webInfo(null); return w && `${w.origin}/?plan=${id}&t=${w.token}`; };
 
 function appLine(a) {
   const low = (a.lowReviews || []).map((r) => r.title).filter(Boolean).slice(0, 2).join(' / ');
@@ -176,8 +155,7 @@ function appLine(a) {
 const HANDLERS = {
   async scout(a) {
     const s = startScout({ topic: a.topic, apps: a.apps, stores: a.stores, market: a.market });
-    const w = webInfo(s.id);
-    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live.` + (w ? `\nLive map in the browser: ${w.url}` : '') + '\nNext: call scout_status with this session id.', mapPointer(s));
+    return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url));
   },
   async scout_status(a) {
     const s = getSession(a.session);
@@ -193,19 +171,20 @@ const HANDLERS = {
   },
   async save_grouping(a) {
     const s = getSession(a.session);
-    if (isRunning(s.id)) return text('The crawl is still running. Call scout_status first, then group when the status is "grouping".', null, true);
-    if (!Array.isArray(a.segments) || !a.segments.length) return text('Give at least one segment.', null, true);
+    if (isRunning(s.id)) return text('The crawl is still running. Call scout_status first, then group when the status is "grouping".', true);
+    if (!Array.isArray(a.segments) || !a.segments.length) return text('Give at least one segment.', true);
     applyGrouping(s, a);
     const placed = s.apps.filter((x) => x.kw).length;
     return text(`Saved ${s.grouping.segments.length} segments, ${s.grouping.keywords.length} keywords and ${s.grouping.openings.length} openings for ${s.id}; ${placed} of ${s.apps.length} apps sit in a keyword. The map redrew.\n` + summary(s, webInfo(s.id)));
   },
   async plan_research(a) {
     const plan = normalizePlan(a);
-    return text(`Plan ready for "${plan.idea}": ${plan.segments.length} segments to scout (${plan.segments.map((x) => x.name).join(', ')}). The user can edit it in the map view and start a focused scout.`, forView({ view: 'plan', plan, web: webInfo(null) }));
+    const id = postPlan(plan);
+    return text(`Plan ${id} ready for "${plan.idea}": ${plan.segments.length} segments to scout (${plan.segments.map((x) => x.name).join(', ')}). Map pages already open show it; the user edits it there and starts a focused scout.` + mapLine(planUrl(id)));
   },
   async show_map(a) {
     const s = getSession(a.session);
-    return text(summary(s, webInfo(s.id)), mapPointer(s));
+    return text(summary(s, webInfo(s.id)));
   },
   async list_sessions() {
     const l = listSessions();
@@ -220,7 +199,7 @@ const HANDLERS = {
   async answer_question(a) {
     const s = getSession(a.session);
     const q = s.questions.find((x) => x.id === a.question_id);
-    if (!q) return text(`No question ${a.question_id} in ${s.id}.`, null, true);
+    if (!q) return text(`No question ${a.question_id} in ${s.id}.`, true);
     q.answer = String(a.answer).slice(0, 8000);
     q.answeredAt = new Date().toISOString();
     save(s, { now: true });
@@ -236,34 +215,14 @@ const HANDLERS = {
     const w = webInfo(s.id);
     return text(`Exported ${s.id} to ${path}` + (w ? `\nDownload link (local): ${w.origin}/export?s=${s.id}&f=${a.format || 'md'}&t=${w.token}` : ''));
   },
-  async ui_action(a) {
-    const result = await handleAction(a.action, a.args || {}, 'widget');
-    return text(`ok: ${a.action}`, result);
-  },
 };
 
 export async function callTool(name, args) {
   const h = HANDLERS[name];
-  if (!h) return text(`Unknown tool: ${name}`, null, true);
+  if (!h) return text(`Unknown tool: ${name}`, true);
   try {
     return await h(args || {});
   } catch (e) {
-    return text(e.message, name === 'ui_action' ? { view: 'error', message: e.message } : forView({ view: 'error', message: e.message }), true);
+    return text(e.message, true);
   }
-}
-
-export function listResources() {
-  return [{ uri: UI_URI, name: 'App Scout map', description: 'The live market map', mimeType: RESOURCE_MIME_TYPE }];
-}
-
-export function readResource(uri) {
-  if (uri !== UI_URI) throw new Error(`Unknown resource ${uri}`);
-  return {
-    contents: [{
-      uri: UI_URI,
-      mimeType: RESOURCE_MIME_TYPE,
-      text: readFileSync(UI_FILE, 'utf8'),
-      _meta: { ui: { csp: { connectDomains: connectOrigins(), resourceDomains: [] }, prefersBorder: false } },
-    }],
-  };
 }

@@ -20,7 +20,7 @@ git switch -c feat/<short-name>
 
 1. `npm test` passes.
 2. `claude plugin validate . --strict` passes.
-3. **E2E with screenshots:** `node scripts/e2e.mjs` passes. It runs the real MCP server, the map view inside a test MCP Apps host and in the browser page, and saves a screenshot of every step to `e2e-out/` with a `report.md`. Add a step to `scripts/e2e.mjs` for any new screen or behaviour the change adds, so the screenshots show the change itself.
+3. **E2E with screenshots:** `node scripts/e2e.mjs` passes. It runs the real MCP server and opens the map link its tools return in two browser tabs at once (Claude's in-app browser and a normal tab share one state), and saves a screenshot of every step to `e2e-out/` with a `report.md`. Add a step to `scripts/e2e.mjs` for any new screen or behaviour the change adds, so the screenshots show the change itself.
 4. Publish the evidence: `node scripts/e2e.mjs --publish` copies the run to the `e2e-evidence` branch (`<branch>/<timestamp>/`) and prints the image links.
 5. Open a pull request into `dev` whose description lists what changed, the test results, and the screenshots (embedded from those links). Then merge it and delete the work branch:
 

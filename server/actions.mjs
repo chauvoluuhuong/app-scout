@@ -1,11 +1,12 @@
-// Actions the map view can take. The same handler serves the in-chat view (through the
-// app-only ui_action tool), the browser page (HTTP and WebSocket) and the model tools.
+// Actions the map page can take, over HTTP or the WebSocket. The model tools reuse some of
+// them. Every open page (in Claude's in-app browser or a normal browser tab) calls the same
+// handler, so they all read and change one shared state.
 import { randomBytes } from 'node:crypto';
 import { ALL_STORES, isRunning, runScout, stopScout } from './pipeline.mjs';
 import { getSession, listSessions, newSession, save, setPrefs } from './sessions.mjs';
 import { snapshot } from './viewmodel.mjs';
 import { exportSession } from './export.mjs';
-import { sendTo, webInfo } from './web/server.mjs';
+import { broadcast, webInfo } from './web/server.mjs';
 import { publish } from './bus.mjs';
 
 export function clampApps(n) {
@@ -21,7 +22,18 @@ export function cleanStores(list) {
 export function startScout({ topic = null, apps = 100, stores, market = 'us', name, plan = null }) {
   const s = newSession({ name, topic: topic || null, stores: cleanStores(stores), market: market === 'vn' ? 'vn' : 'us', apps: clampApps(apps), plan });
   runScout(s); // runs in the background; progress arrives through the bus
+  broadcast({ type: 'session', id: s.id, name: s.name }); // every open page follows the new scout
   return s;
+}
+
+// Plans from plan_research, kept in memory until a page opens them. Open pages get them pushed.
+const plans = new Map();
+export function postPlan(plan) {
+  const id = `plan-${randomBytes(3).toString('hex')}`;
+  plans.set(id, plan);
+  if (plans.size > 20) plans.delete(plans.keys().next().value);
+  broadcast({ type: 'plan', id });
+  return id;
 }
 
 /** A plan from Claude, possibly edited by the user, turned into a focused scout. */
@@ -42,7 +54,7 @@ export function normalizePlan(p = {}) {
   };
 }
 
-export async function handleAction(action, args = {}, from = 'widget') {
+export async function handleAction(action, args = {}) {
   const web = (id) => webInfo(id);
   switch (action) {
     case 'snapshot': {
@@ -73,33 +85,30 @@ export async function handleAction(action, args = {}, from = 'widget') {
     }
     case 'sessions':
       return { sessions: listSessions() };
+    case 'plan': {
+      const plan = plans.get(args.id);
+      if (!plan) throw new Error('That plan is gone. Ask Claude to plan it again.');
+      return { view: 'plan', plan, web: web(null) };
+    }
     case 'view': {
+      // Each page keeps its own camera; the session keeps whatever the user looked at last,
+      // which is what get_view_state tells Claude.
       const s = getSession(args.session);
       s.view = { ...s.view, ...(args.state || {}) };
       save(s);
-      sendTo(s.id, { type: 'view', state: s.view, from });
       return { ok: true };
     }
     case 'question': {
       const s = getSession(args.session);
       const text = String(args.text || '').trim().slice(0, 1000);
       if (!text) throw new Error('Type a question first.');
-      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: args.context || null, from, at: new Date().toISOString(), answer: null, delivered: from === 'widget' };
+      // Saved with the session: Claude reads it with get_view_state, and scout_status and
+      // show_map list it until it is answered. Every open page sees it in its next snapshot.
+      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: args.context || null, at: new Date().toISOString(), answer: null };
       s.questions.push(q);
       save(s, { now: true });
-      // A question asked in the browser reaches Claude through the view open in the chat.
-      const routed = from === 'browser' ? sendTo(s.id, { type: 'ask', question: q }, 'widget') : 0;
       publish({ session: s.id, kind: 'question' });
-      return { question: q, routed };
-    }
-    case 'delivered': {
-      const s = getSession(args.session);
-      // First caller wins, so two copies of the view in one chat never send a question twice.
-      const q = s.questions.find((x) => x.id === args.id);
-      const already = !q || q.delivered;
-      if (q) q.delivered = true;
-      save(s);
-      return { already };
+      return { question: q };
     }
     case 'export': {
       const s = getSession(args.session);

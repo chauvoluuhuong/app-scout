@@ -1,6 +1,7 @@
-// Local web server on 127.0.0.1 only: serves the map page for "Open in browser", a small JSON
-// API for the page's buttons, exports, and a WebSocket that pushes live updates both ways
-// (crawl progress, questions asked in the browser, Claude's answers).
+// Local web server on 127.0.0.1 only: serves the map page, a small JSON API for its buttons,
+// exports, and a WebSocket that pushes live updates. The same link can be open in several
+// places at once (Claude's in-app browser and a normal browser tab); every page watching a
+// session gets the same pushes, and all state lives here, so they stay in step.
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
@@ -15,8 +16,8 @@ export const UI_FILE = join(here, '..', '..', 'ui', 'app.html');
 
 const TOKEN = process.env.APP_SCOUT_DEV_TOKEN || randomBytes(16).toString('hex');
 let PORT = null;
-let handler = null; // (action, args, from) => Promise<result>
-const clients = new Set(); // { conn, session, role }
+let handler = null; // (action, args) => Promise<result>
+const clients = new Set(); // { conn, session }
 
 export const webReady = () => PORT != null;
 
@@ -33,18 +34,22 @@ export function webInfo(sessionId) {
   };
 }
 
-export const connectOrigins = () => (PORT == null ? [] : [`http://127.0.0.1:${PORT}`, `ws://127.0.0.1:${PORT}`]);
-
-/** Send to every connected client watching `session` (optionally only one role). */
-export function sendTo(session, msg, role) {
+/** Send to every connected page watching `session`. */
+export function sendTo(session, msg) {
   let n = 0;
   for (const c of clients) {
-    if (c.session === session && (!role || c.role === role)) {
+    if (c.session === session) {
       c.conn.send(msg);
       n++;
     }
   }
   return n;
+}
+
+/** Send to every connected page, whatever it is watching (a new session, a new plan). */
+export function broadcast(msg) {
+  for (const c of clients) c.conn.send(msg);
+  return clients.size;
 }
 
 function okHost(req) {
@@ -91,14 +96,14 @@ async function route(req, res) {
       return send(res, 400, { error: 'Invalid JSON' }, undefined, cors);
     }
     try {
-      return send(res, 200, await handler(body.action, body.args || {}, 'browser'), undefined, cors);
+      return send(res, 200, await handler(body.action, body.args || {}), undefined, cors);
     } catch (e) {
       return send(res, 400, { error: e.message }, undefined, cors);
     }
   }
   if (url.pathname === '/export' && req.method === 'GET') {
     try {
-      const r = await handler('export', { session: url.searchParams.get('s'), format: url.searchParams.get('f') || 'json', parts: (url.searchParams.get('parts') || '').split(',').filter(Boolean) }, 'browser');
+      const r = await handler('export', { session: url.searchParams.get('s'), format: url.searchParams.get('f') || 'json', parts: (url.searchParams.get('parts') || '').split(',').filter(Boolean) });
       return send(res, 200, r.text, `${r.mimeType}; charset=utf-8`, { 'Content-Disposition': `attachment; filename="${r.filename}"` });
     } catch (e) {
       return send(res, 400, { error: e.message });
@@ -120,18 +125,18 @@ export function startWeb(actionHandler) {
     }
     const conn = accept(req, socket);
     if (!conn) return;
-    const client = { conn, session: url.searchParams.get('s') || null, role: url.searchParams.get('role') === 'browser' ? 'browser' : 'widget' };
+    const client = { conn, session: url.searchParams.get('s') || null };
     clients.add(client);
     conn.onclose = () => clients.delete(client);
     conn.onmessage = async (msg) => {
       try {
         if (msg.type === 'sub') client.session = msg.session;
-        else if (msg.type === 'action') conn.send({ type: 'result', id: msg.id, result: await handler(msg.action, msg.args || {}, client.role) });
+        else if (msg.type === 'action') conn.send({ type: 'result', id: msg.id, result: await handler(msg.action, msg.args || {}) });
       } catch (e) {
         conn.send({ type: 'result', id: msg.id, error: e.message });
       }
     };
-    conn.send({ type: 'hello', role: client.role });
+    conn.send({ type: 'hello' });
   });
 
   // Push session changes to everyone watching that session (coalesced to ~3 per second).
