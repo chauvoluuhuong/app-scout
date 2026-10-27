@@ -33,6 +33,12 @@ writeFileSync(join(data, 'sessions', `${SESSION}.json`), JSON.stringify({
   id: SESSION, ...fx.session, created: now, updated: now, plan: null, status: 'grouping',
   apps: fx.apps, grouping: null, questions: [], view: { sizeBy: 'revenue', lens: null, focus: null }, error: null,
 }));
+// A session saved mid-crawl, to show the controls while a scout runs (no network needed).
+const RUNNING = 'e2e-running';
+writeFileSync(join(data, 'sessions', `${RUNNING}.json`), JSON.stringify({
+  id: RUNNING, ...fx.session, name: 'Scout in progress', created: now, updated: now, plan: null, status: 'crawling',
+  progress: { ...fx.session.progress, pct: 42, step: 'Reading Google Play' }, apps: fx.apps.slice(0, 20), grouping: null, questions: [], view: {}, error: null,
+}));
 
 const procs = [];
 const cleanup = () => procs.forEach((p) => { try { p.kill(); } catch {} });
@@ -260,8 +266,24 @@ await step('A plan from Claude shows on every open page', async () => {
   return 'pushed to both pages; the plan link opens it too';
 });
 
+await step('While a scout runs, Scout and its controls are off', async () => {
+  await A.go(link.replace(/s=[^&]+/, `s=${RUNNING}`));
+  await A.waitFor(`document.getElementById('stat').textContent.startsWith('Scouting')`, 'the running scout');
+  const st = await A.js(`({ scout: document.getElementById('bScout').disabled, apps: document.getElementById('nApps').disabled, label: document.getElementById('bScout').textContent.trim() })`);
+  if (!st.scout || !st.apps || st.label !== 'Scouting…') throw new Error('controls still on: ' + JSON.stringify(st));
+  await A.go(link);
+  await A.waitFor(`document.getElementById('stat').textContent.includes('46 apps')`, 'the finished session');
+  const back = await A.js(`!document.getElementById('bScout').disabled && !document.getElementById('nApps').disabled`);
+  if (!back) throw new Error('controls stay off after the scout');
+  shotOf = A;
+  await A.go(link.replace(/s=[^&]+/, `s=${RUNNING}`));
+  await A.waitFor(`document.getElementById('bScout').disabled`, 'the disabled Scout button');
+  return 'Scout and the app count read "Scouting…" and are off while crawling; back on for a finished session';
+});
+
 await step('Export downloads the report', async () => {
-  await A.click('[data-a="closeplan"]');
+  await A.go(link);
+  await A.waitFor(`document.getElementById('stat').textContent.includes('46 apps')`, 'the map');
   const ok = await A.js(`fetch('/export?s=${SESSION}&f=md&parts=apps,segments&t=' + new URLSearchParams(location.search).get('t')).then((r) => r.ok && r.headers.get('content-disposition'))`);
   if (!ok) throw new Error('the export link failed');
   await A.js(`document.getElementById('bExport').click()`);
