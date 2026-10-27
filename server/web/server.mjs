@@ -1,22 +1,30 @@
-// Local web server on 127.0.0.1 only: serves the map page for "Open in browser", a small JSON
-// API for the page's buttons, exports, and a WebSocket that pushes live updates both ways
-// (crawl progress, questions asked in the browser, Claude's answers).
+// Local web server on 127.0.0.1 only: serves the map page, a small JSON API for its buttons,
+// exports, and a WebSocket that pushes live updates. The same link can be open in several
+// places at once (Claude's in-app browser and a normal browser tab); every page watching a
+// session gets the same pushes, and all state lives here, so they stay in step.
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { accept } from './ws.mjs';
-import { subscribe } from '../bus.mjs';
+import { subscribe, waitFor } from '../bus.mjs';
 import { log } from '../lib/util.mjs';
+import { register } from '../lib/live.mjs';
+import { DATA_DIR } from '../sessions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const UI_FILE = join(here, '..', '..', 'ui', 'app.html');
 
 const TOKEN = process.env.APP_SCOUT_DEV_TOKEN || randomBytes(16).toString('hex');
 let PORT = null;
-let handler = null; // (action, args, from) => Promise<result>
-const clients = new Set(); // { conn, session, role }
+let handler = null; // (action, args) => Promise<result>
+let inbox = null;   // { has(), take() } for questions waiting for Claude
+let waiting = 0, lastWait = 0;
+
+/** True while the plugin's monitor is waiting for questions (or was a moment ago). */
+export const listening = () => waiting > 0 || Date.now() - lastWait < 5000;
+const clients = new Set(); // { conn, session }
 
 export const webReady = () => PORT != null;
 
@@ -33,18 +41,22 @@ export function webInfo(sessionId) {
   };
 }
 
-export const connectOrigins = () => (PORT == null ? [] : [`http://127.0.0.1:${PORT}`, `ws://127.0.0.1:${PORT}`]);
-
-/** Send to every connected client watching `session` (optionally only one role). */
-export function sendTo(session, msg, role) {
+/** Send to every connected page watching `session`. */
+export function sendTo(session, msg) {
   let n = 0;
   for (const c of clients) {
-    if (c.session === session && (!role || c.role === role)) {
+    if (c.session === session) {
       c.conn.send(msg);
       n++;
     }
   }
   return n;
+}
+
+/** Send to every connected page, whatever it is watching (a new session, a new plan). */
+export function broadcast(msg) {
+  for (const c of clients) c.conn.send(msg);
+  return clients.size;
 }
 
 function okHost(req) {
@@ -91,14 +103,33 @@ async function route(req, res) {
       return send(res, 400, { error: 'Invalid JSON' }, undefined, cors);
     }
     try {
-      return send(res, 200, await handler(body.action, body.args || {}, 'browser'), undefined, cors);
+      return send(res, 200, await handler(body.action, body.args || {}), undefined, cors);
     } catch (e) {
       return send(res, 400, { error: e.message }, undefined, cors);
     }
   }
+  // The monitor long-polls /wait; the prompt hook reads /pending once. Both return the
+  // questions waiting for Claude as lines of text, and take them off the queue.
+  if (url.pathname === '/wait' && req.method === 'GET') {
+    waiting++;
+    let gone = false;
+    try {
+      // A monitor that died mid-wait must not take questions it can no longer print.
+      const closed = new Promise((r) => res.on('close', () => { gone = true; r(); }));
+      if (!inbox.has()) await Promise.race([waitFor(null, (e) => e.kind === 'question' && e.fresh, Math.min(Number(url.searchParams.get('ms')) || 25000, 60000)), closed]);
+    } finally {
+      waiting--;
+      lastWait = gone ? lastWait : Date.now();
+    }
+    if (gone) return;
+    return send(res, 200, { questions: inbox.take() });
+  }
+  if (url.pathname === '/pending' && req.method === 'GET') {
+    return send(res, 200, { questions: inbox.take() });
+  }
   if (url.pathname === '/export' && req.method === 'GET') {
     try {
-      const r = await handler('export', { session: url.searchParams.get('s'), format: url.searchParams.get('f') || 'json', parts: (url.searchParams.get('parts') || '').split(',').filter(Boolean) }, 'browser');
+      const r = await handler('export', { session: url.searchParams.get('s'), format: url.searchParams.get('f') || 'json', parts: (url.searchParams.get('parts') || '').split(',').filter(Boolean) });
       return send(res, 200, r.text, `${r.mimeType}; charset=utf-8`, { 'Content-Disposition': `attachment; filename="${r.filename}"` });
     } catch (e) {
       return send(res, 400, { error: e.message });
@@ -107,8 +138,9 @@ async function route(req, res) {
   return send(res, 404, { error: 'Not found' });
 }
 
-export function startWeb(actionHandler) {
+export function startWeb(actionHandler, questionInbox = { has: () => false, take: () => [] }) {
   handler = actionHandler;
+  inbox = questionInbox;
   const server = createServer((req, res) => {
     route(req, res).catch((e) => send(res, 500, { error: e.message }));
   });
@@ -120,18 +152,18 @@ export function startWeb(actionHandler) {
     }
     const conn = accept(req, socket);
     if (!conn) return;
-    const client = { conn, session: url.searchParams.get('s') || null, role: url.searchParams.get('role') === 'browser' ? 'browser' : 'widget' };
+    const client = { conn, session: url.searchParams.get('s') || null };
     clients.add(client);
     conn.onclose = () => clients.delete(client);
     conn.onmessage = async (msg) => {
       try {
         if (msg.type === 'sub') client.session = msg.session;
-        else if (msg.type === 'action') conn.send({ type: 'result', id: msg.id, result: await handler(msg.action, msg.args || {}, client.role) });
+        else if (msg.type === 'action') conn.send({ type: 'result', id: msg.id, result: await handler(msg.action, msg.args || {}) });
       } catch (e) {
         conn.send({ type: 'result', id: msg.id, error: e.message });
       }
     };
-    conn.send({ type: 'hello', role: client.role });
+    conn.send({ type: 'hello' });
   });
 
   // Push session changes to everyone watching that session (coalesced to ~3 per second).
@@ -151,22 +183,26 @@ export function startWeb(actionHandler) {
 
   return new Promise((resolve) => {
     let port = 4777;
-    const tryListen = () => {
-      server.once('error', (err) => {
-        if (err.code === 'EADDRINUSE' && port < 4797) {
-          port++;
-          tryListen();
-        } else {
-          log('web server not started:', err.message);
-          resolve(null);
-        }
-      });
-      server.listen(port, '127.0.0.1', () => {
-        PORT = port;
-        log(`map page on http://127.0.0.1:${port}`);
-        resolve(port);
-      });
+    // One 'listening' handler for all attempts: a callback per listen() call would pile up
+    // and all fire at once on the port that finally works.
+    const onError = (err) => {
+      if (err.code === 'EADDRINUSE' && port < 4797) {
+        port++;
+        server.listen(port, '127.0.0.1');
+      } else {
+        server.off('error', onError);
+        log('web server not started:', err.message);
+        resolve(null);
+      }
     };
-    tryListen();
+    server.on('error', onError);
+    server.once('listening', () => {
+      server.off('error', onError);
+      PORT = port;
+      register(DATA_DIR, { port, token: TOKEN });
+      log(`map page on http://127.0.0.1:${port}`);
+      resolve(port);
+    });
+    server.listen(port, '127.0.0.1');
   });
 }

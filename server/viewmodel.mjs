@@ -1,5 +1,4 @@
-// What the map view receives: a compact snapshot of one session. Kept small because it
-// travels through the host and is stored with the conversation.
+// What a map page receives: a compact snapshot of one session.
 import { LENSES, segmentStats } from './analysis.mjs';
 import { STORE_LABEL } from './pipeline.mjs';
 import { getPrefs } from './sessions.mjs';
@@ -48,6 +47,6 @@ export function summary(s, web) {
   if (s.grouping?.by === 'claude') lines.push(`Segments: ${s.grouping.segments.map((x) => x.name).join(', ')}.`);
   const open = s.questions.filter((q) => !q.answer);
   if (open.length) lines.push(`Unanswered map questions: ${open.map((q) => `${q.id} "${q.text}"`).join('; ')}. Use get_view_state, then answer_question.`);
-  if (web) lines.push(`Live map in the browser: ${web.url}`);
+  if (web) lines.push(`Map: ${web.url}`);
   return lines.join('\n');
 }

@@ -11,7 +11,7 @@
   "homepage": "https://github.com/chauvoluuhuong/app-scout",
   "repository": "https://github.com/chauvoluuhuong/app-scout",
   "license": "MIT",
-  "keywords": ["market-research", "app-store", "google-play", "chrome-extensions", "competitor-analysis", "mcp-apps", "product-ideas"],
+  "keywords": ["market-research", "app-store", "google-play", "chrome-extensions", "competitor-analysis", "product-ideas"],
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://github.com/chauvoluuhuong/app-scout#readme",
   "supportUrl": "https://github.com/chauvoluuhuong/app-scout/issues",
