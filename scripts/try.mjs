@@ -25,7 +25,7 @@ console.log((await rpc('initialize', { protocolVersion: '2025-06-18', capabiliti
 console.log('tools:', (await rpc('tools/list')).result.tools.map((t) => t.name).join(', '));
 const started = await call('scout', { topic, apps: Number(apps) });
 console.log(started.content[0].text);
-const sid = started.structuredContent.session.id;
+const sid = started.content[0].text.match(/Started scout (\S+)/)[1];
 for (let i = 0; i < 12; i++) {
   const st = await call('scout_status', { session: sid, wait_seconds: 30 });
   console.log(st.content[0].text.split('\n')[0]);

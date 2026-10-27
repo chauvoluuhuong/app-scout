@@ -40,7 +40,7 @@ export function snapshot(s, web) {
 /** One short paragraph for the model: counts and what to do next, never the whole table. */
 export function summary(s, web) {
   const per = Object.entries(s.progress.perStore).map(([k, v]) => `${STORE_LABEL[k]} ${v.apps}${v.status === 'failed' ? ' (failed)' : ''}`).join(', ');
-  const lines = [`Session ${s.id} "${s.name}": ${s.status}, ${s.apps.length} of ${s.target} apps (${per || 'no stores yet'}). ${s.progress.step}.`];
+  const lines = [`Session ${s.id} "${s.name}": ${s.status}, ${s.apps.length} apps, up to ${s.target} per platform (${per || 'no stores yet'}). ${s.progress.step}.`];
   if (s.status === 'grouping') lines.push('Next: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings backed by the data.');
   if (s.status === 'crawling' || s.status === 'queued') lines.push('Next: call scout_status to wait for the crawl.');
   if (s.status === 'failed') lines.push(`Error: ${s.error}`);

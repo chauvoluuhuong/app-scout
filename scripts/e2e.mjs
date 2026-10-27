@@ -150,6 +150,13 @@ await step('Toolbar icons sit on the text line', async () => {
   return `${off.length} buttons, every icon within ${worst.toFixed(1)}px of centre`;
 });
 
+await step('The app count is per platform', async () => {
+  const opt = await A.js(`document.querySelector('#nApps option:checked').textContent`);
+  const found = await A.js(`document.querySelector('[data-m="0"]').innerText.replace(/\\s+/g, ' ')`);
+  if (!/\/ platform$/.test(opt) || !/≤50\/platform/.test(found)) throw new Error(`labels still read as a total: "${opt}", "${found}"`);
+  return `selector "${opt}" · panel "${found}"`;
+});
+
 await step('First-run tour shows how to read the map', async () => {
   await A.waitFor(`document.getElementById('tour').style.display === 'block'`, 'the tour');
   const txt = await A.js(`document.getElementById('tour').innerText`);

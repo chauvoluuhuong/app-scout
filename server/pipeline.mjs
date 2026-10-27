@@ -13,7 +13,6 @@ import { save } from './sessions.mjs';
 
 export const ALL_STORES = ['appstore', 'play', 'chrome', 'workspace', 'github'];
 export const STORE_LABEL = { appstore: 'App Store', play: 'Google Play', chrome: 'Chrome Web Store', workspace: 'Workspace', github: 'GitHub' };
-const WEIGHT = { appstore: 0.4, play: 0.3, chrome: 0.15, workspace: 0.1, github: 0.05 };
 const BROWSE = {
   play: ['PRODUCTIVITY', 'BUSINESS', 'COMMUNICATION', 'TOOLS', 'EDUCATION'],
   chrome: ['productivity/tools', 'productivity/workflow', 'productivity/communication'],
@@ -37,16 +36,6 @@ function emit(s, kind) {
   publish({ session: s.id, kind });
 }
 
-function quotas(stores, target) {
-  const w = stores.reduce((t, st) => t + WEIGHT[st], 0);
-  const q = {};
-  let left = target;
-  stores.forEach((st, i) => {
-    q[st] = i === stores.length - 1 ? left : Math.max(1, Math.round((target * WEIGHT[st]) / w));
-    left -= q[st];
-  });
-  return q;
-}
 
 function setStep(s, pct, step) {
   s.progress.pct = Math.max(s.progress.pct, Math.round(pct));
@@ -61,7 +50,7 @@ function addApp(s, row) {
   ps.apps++;
   ps.details++;
   spiralLayout(s.apps);
-  const collected = s.apps.length / s.target;
+  const collected = s.apps.length / (s.target * s.stores.length); // s.target is per platform
   setStep(s, 5 + collected * 55, 'Collecting listings');
   return true;
 }
@@ -228,8 +217,8 @@ export async function runScout(s) {
   s.progress.searches.total = phrases.length ? phrases.length * s.stores.filter((x) => x !== 'github').length + (s.stores.includes('github') ? phrases.length : 0) : 0;
   emit(s, 'progress');
   try {
-    const q = quotas(s.stores, s.target);
-    await Promise.all(s.stores.map((st) => collectStore(s, st, q[st], phrases, ctl)));
+    // `target` is the most apps to collect from each platform, not a total split between them.
+    await Promise.all(s.stores.map((st) => collectStore(s, st, s.target, phrases, ctl)));
     if (s.stores.includes('appstore') && !ctl.cancel) await enrichAppStore(s, ctl);
     if (!s.apps.length) throw new Error('No store returned any apps. Check your connection, or try a broader topic.');
     setStep(s, 94, 'Building the map');

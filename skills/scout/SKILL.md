@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Research the app market on a live map. Crawls the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub (100 apps by default), then you group the apps into segments, keywords and openings that the map draws. Use it when someone wants to scout apps or tools, see what is trending or earning in a category, map competitors, find gaps for their next app, or says "scout", "market map", "app ideas", "nghiên cứu thị trường app", "app nào đang hot", even with no topic at all.
+description: Research the app market on a live map. Crawls the App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub (up to 100 apps per platform by default), then you group the apps into segments, keywords and openings that the map draws. Use it when someone wants to scout apps or tools, see what is trending or earning in a category, map competitors, find gaps for their next app, or says "scout", "market map", "app ideas", "nghiên cứu thị trường app", "app nào đang hot", even with no topic at all.
 ---
 
 # App Scout
@@ -9,7 +9,7 @@ App Scout's MCP server does the crawling, keeps every research session, and show
 
 ## Overview mode (the default)
 
-1. **Start.** Call `scout`. Leave `topic` out when the user asks for nothing specific: the server reads the overall charts. Keep `apps` at 100 unless the user names a number. Use `market: "vn"` when the user writes in Vietnamese or asks about Vietnam.
+1. **Start.** Call `scout`. Leave `topic` out when the user asks for nothing specific: the server reads the overall charts. `apps` is the most apps to collect from each platform, not the total: keep it at 100 unless the user names a number ("50 apps" means up to 50 per platform). Use `market: "vn"` when the user writes in Vietnamese or asks about Vietnam.
 2. **Wait.** Call `scout_status` with the session id until the status is `grouping` (or `ready`). Each call waits up to 40 seconds; tell the user in one short line what is happening, not after every call.
 3. **Read.** Call `list_apps` (page with `offset` past 150 apps).
 4. **Group.** Call `save_grouping`:

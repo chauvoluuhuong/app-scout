@@ -1,6 +1,6 @@
 # App Scout
 
-App Scout is a Claude plugin for researching the app market before you build your next app. Ask Claude to scout, and App Scout collects up to 100 apps (or as many as you choose) from the **App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub**, shows them on a live map, and lets Claude group them into segments, keywords and openings. You move from the overview into any segment, keyword or app, see the numbers behind it, and ask Claude about exactly what you're looking at. Every research session is saved, so you can come back to it later or export it.
+App Scout is a Claude plugin for researching the app market before you build your next app. Ask Claude to scout, and App Scout collects up to 100 apps per platform (or as many as you choose) from each of the **App Store, Google Play, Chrome Web Store, Google Workspace Marketplace and GitHub**, shows them on a live map, and lets Claude group them into segments, keywords and openings. You move from the overview into any segment, keyword or app, see the numbers behind it, and ask Claude about exactly what you're looking at. Every research session is saved, so you can come back to it later or export it.
 
 ## What you get
 
@@ -41,7 +41,7 @@ App Scout's MCP server runs on your computer, so it loads where Claude starts lo
 
 | Tool | What it does |
 |---|---|
-| `scout` | Starts a scout (topic optional, `apps` default 100) and shows the map |
+| `scout` | Starts a scout (topic optional; `apps` is the most to collect per platform, default 100) and shows the map |
 | `scout_status` | Waits for the crawl and reports progress per store |
 | `list_apps` | A compact list of the collected apps for Claude to group and analyse |
 | `save_grouping` | Saves Claude's segments, keywords, openings and complaint notes; the map redraws |
