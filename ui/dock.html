@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Scout</title>
+<style>
+:root{--bg:#0A1310;--card:#0E1B16;--line:#1D4A3C;--ctl:#12261F;--ctl2:#18332A;--edge:#2F6B58;--tx:#E1F5EE;--tx2:#C9E9DD;--mut:#9FE1CB;--dim:#5F8F80;--acc:#EF9F27;--acc2:#FAC775;--ok:#5DCAA5;--bad:#F09595;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;color:var(--tx);font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.card{background:var(--bg);border:0.5px solid var(--line);border-radius:12px;padding:12px}
+.hd{display:flex;align-items:center;gap:8px}
+.hd b{font-size:13px}
+.hd span{color:var(--mut);font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+button{font:inherit;font-size:12px;height:28px;padding:0 10px;background:var(--ctl);color:var(--tx);border:0.5px solid var(--edge);border-radius:8px;cursor:pointer;white-space:nowrap}
+button:hover{background:var(--ctl2)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.pr{background:var(--acc);color:#2E2104;border-color:var(--acc);font-weight:600}
+button.pr:hover{background:var(--acc2)}
+button:disabled{opacity:.45;cursor:default}
+.q{margin:10px 0 0;background:var(--card);border:0.5px solid var(--line);border-radius:8px;padding:8px 10px}
+.q p{margin:0}
+.q .k{color:var(--mut);font-size:11px;margin-bottom:4px}
+.acts{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.st{color:var(--tx2);margin:10px 0 0;font-size:12px}
+.ok{color:var(--ok)}
+.err{color:var(--bad)}
+kbd{font:inherit;font-size:11px;opacity:.75}
+.moved{color:var(--dim);font-size:12px;padding:6px 2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// The App Scout card (dock): shown in chat hosts that render MCP Apps, such as Claude Desktop
+// Chat. It does two things: links to the live map, and when the user asks something on the map,
+// shows the prepared prompt with Copy and Send. Send posts it into the chat as the user's
+// message (ui/message), so Claude answers without the user typing it. It talks to the server
+// only through the host (tools/call on the app-only `dock` tool). A new card appears after each
+// answer; only the newest one acts, older ones say they moved.
+(function () {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+let seq = 0;
+const pending = new Map();
+const post = (m) => window.parent.postMessage({ jsonrpc: '2.0', ...m }, '*');
+const request = (method, params) => new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject }); post({ id, method, params }); });
+const call = async (args) => { const r = await request('tools/call', { name: 'dock', arguments: args }); if (r && r.isError) throw new Error((r.content && r.content[0] && r.content[0].text) || 'Failed'); return r.structuredContent || {}; };
+
+let ctx = {}, me = null, st = { active: true, prompt: null, session: null, map: null }, phase = 'idle', sentQ = null, err = '', timer = null;
+
+window.addEventListener('message', (e) => {
+  if (e.source !== window.parent) return;
+  const m = e.data;
+  if (!m || m.jsonrpc !== '2.0') return;
+  if (m.method === undefined) { const p = pending.get(m.id); if (!p) return; pending.delete(m.id); m.error ? p.reject(new Error(m.error.message || 'Failed')) : p.resolve(m.result); return; }
+  if (m.method === 'ui/notifications/tool-result') poll();
+  else if (m.method === 'ui/notifications/host-context-changed') { ctx = { ...ctx, ...m.params }; render(); }
+  else if (m.method === 'ping' || m.method === 'ui/resource-teardown') post({ id: m.id, result: {} });
+  else if (m.id !== undefined) post({ id: m.id, error: { code: -32601, message: 'Method not found: ' + m.method } });
+});
+
+async function poll() {
+  if (!me) return;
+  try {
+    const r = await call({ op: 'poll', id: me });
+    st = r;
+    // "Sent" stays until a new prompt arrives.
+    if (r.prompt && r.prompt.id !== sentQ && phase !== 'sending') phase = 'idle';
+    err = '';
+  } catch (e) { err = 'Lost touch with App Scout: ' + e.message; }
+  render();
+  clearTimeout(timer);
+  if (st.active) timer = setTimeout(poll, 2000); // an older card stops asking once it has moved
+}
+
+async function send() {
+  const p = st.prompt;
+  if (!p || phase === 'sending') return;
+  phase = 'sending'; err = ''; render();
+  try {
+    await request('ui/message', { role: 'user', content: [{ type: 'text', text: p.text }] });
+    await call({ op: 'sent', qid: p.id });
+    phase = 'sent'; sentQ = p.id; st.prompt = null;
+  } catch (e) { phase = 'idle'; err = 'The chat didn’t take the message (' + e.message + '). Copy it and paste it instead.'; }
+  render();
+}
+
+async function copy() {
+  const t = st.prompt && st.prompt.text;
+  if (!t) return;
+  try { await navigator.clipboard.writeText(t); err = ''; flash('Copied. Paste it into the chat.'); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); flash('Copied. Paste it into the chat.'); } catch (e2) { err = 'Select the text and copy it.'; } ta.remove(); }
+  render();
+}
+let note = '';
+function flash(t) { note = t; setTimeout(() => { note = ''; render(); }, 2500); }
+
+function render() {
+  if (!st.active) { $('root').innerHTML = '<div class="moved">App Scout moved to the newest card below ↓</div>'; return size(); }
+  const name = st.session ? st.session.name : 'No research yet';
+  const canPip = (ctx.availableDisplayModes || []).includes('pip');
+  let h = '<div class="card"><div class="hd"><b>App Scout</b><span>' + esc(name) + '</span>' +
+    (canPip ? '<button data-a="pip" title="Keep this card in view">' + (ctx.displayMode === 'pip' ? 'Dock' : 'Float') + '</button>' : '') +
+    (st.map ? '<button data-a="map">Open map</button>' : '') + '</div>';
+  if (st.prompt) {
+    h += '<div class="q"><p class="k">Prompt ready from the map</p><p>' + esc(st.prompt.question) + '</p></div>' +
+      '<div class="acts"><button data-a="copy">Copy</button><button class="pr" data-a="send" id="send"' + (phase === 'sending' ? ' disabled' : '') + '>' + (phase === 'sending' ? 'Sending…' : 'Send <kbd>⏎</kbd>') + '</button></div>';
+  } else if (phase === 'sent') {
+    h += '<p class="st ok" role="status">✓ Sent. Claude is answering; the answer will show on the map.</p>';
+  } else {
+    h += '<p class="st" role="status">Ask Claude on the map, and the prompt appears here to send.</p>';
+  }
+  if (note) h += '<p class="st ok" role="status">' + esc(note) + '</p>';
+  if (err) h += '<p class="st err" role="alert">' + esc(err) + '</p>';
+  $('root').innerHTML = h + '</div>';
+  size();
+}
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a;
+  if (a === 'send') send();
+  else if (a === 'copy') copy();
+  else if (a === 'map') request('ui/open-link', { url: st.map }).catch(() => {});
+  else if (a === 'pip') { try { const r = await request('ui/request-display-mode', { mode: ctx.displayMode === 'pip' ? 'inline' : 'pip' }); ctx.displayMode = r && r.mode; } catch (err2) {} render(); }
+});
+// Enter sends the ready prompt, unless focus is on another button.
+document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && st.prompt && !(e.target.closest && e.target.closest('button:not(#send)'))) { e.preventDefault(); send(); } });
+
+let lastH = 0;
+function size() { requestAnimationFrame(() => { const h = Math.ceil(document.documentElement.getBoundingClientRect().height); if (h !== lastH) { lastH = h; post({ method: 'ui/notifications/size-changed', params: { height: h } }); } }); }
+
+(async function start() {
+  try {
+    const r = await request('ui/initialize', { appInfo: { name: 'app-scout-dock', version: '1' }, appCapabilities: { availableDisplayModes: ['inline', 'pip'] }, protocolVersion: '2026-01-26' });
+    ctx = (r && r.hostContext) || {};
+    post({ method: 'ui/notifications/initialized' });
+    me = (await call({ op: 'hello' })).id;
+  } catch (e) { err = 'App Scout card could not start: ' + e.message; render(); return; }
+  poll();
+})();
+})();
+</script>
+</body>
+</html>

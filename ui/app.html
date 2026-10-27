@@ -645,14 +645,15 @@ async function askToGroup() {
 $('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); } });
 
 // The page can't post into the chat itself. A question goes to the server, which hands it to
-// the plugin's monitor (that wakes Claude) or, without one, to the hook that attaches it to the
-// user's next message. The panel follows it: sending, Claude has it, answered.
+// a watcher that wakes Claude (the plugin's monitor, or one Claude runs in the background), to
+// the App Scout card in the chat (where the user presses Send), or else to the hook that
+// attaches it to the user's next message. The panel follows it: sending, Claude has it, answered.
 async function sendToClaude(text, r) {
   if (!D) return { copy: text };
   try {
     if (!r) r = await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name } } });
     setTimeout(panel, 8000); // re-check: no monitor picked it up → show the fallback
-    return { qid: r.question.id, listening: r.listening, at: Date.now(), copy: text };
+    return { qid: r.question.id, listening: r.listening, dock: r.dock, at: Date.now(), copy: text };
   } catch (e) { toast(e.message); return null; }
 }
 function askStatus() {
@@ -661,6 +662,7 @@ function askStatus() {
   if (qq && qq.answer) return '<div class="qa" id="ans"><b>Q:</b> ' + esc(qq.text) + '<br><b>Claude:</b> ' + esc(qq.answer.slice(0, 1200)) + (qq.answer.length > 1200 ? '…' : '') + '</div>' + done;
   if (qq && qq.sentAt) return '<p class="i" style="margin-top:8px;color:var(--ok)" role="status" id="ast">✓ Claude has your question. The answer will show here.</p>' + done;
   const paste = '<details' + (askState.qid ? '' : ' open') + '><summary>Or paste it into the chat yourself</summary><pre>' + esc(askState.copy) + '</pre><div class="acts"><button data-a="copy">Copy</button></div></details>';
+  if (askState.qid && askState.dock) return '<p class="i" style="margin-top:8px" role="status" id="ast">Prompt ready in the chat: press <b>Send</b> on the App Scout card.</p>' + paste + done;
   if (askState.qid && askState.listening && Date.now() - askState.at < 8000) return '<p class="i" style="margin-top:8px" role="status" id="ast">Sending to Claude…</p>' + done;
   if (askState.qid) return '<p class="i" style="margin-top:8px" role="status" id="ast">Saved. Go back to Claude and send any message (like “ok”): App Scout attaches your question to it.</p>' + paste + done;
   return '<p class="i" style="margin-top:8px">Paste this into the chat with Claude:</p>' + paste + done;

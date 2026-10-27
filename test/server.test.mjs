@@ -40,21 +40,24 @@ function savedSessionDir() {
   return dir;
 }
 
-test('MCP handshake and tools; no UI resource, tools return text only', async () => {
+test('MCP handshake, tools, and the App Scout card resource', async () => {
   const { srv, rpc } = start();
   try {
     const init = await rpc('initialize', INIT);
     assert.equal(init.result.protocolVersion, '2025-06-18');
     assert.equal(init.result.serverInfo.name, 'app-scout');
-    assert.equal(init.result.capabilities.resources, undefined);
+    assert.ok(init.result.capabilities.resources);
     assert.match(init.result.instructions, /built-in browser/);
 
     const tools = (await rpc('tools/list')).result.tools;
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
     for (const n of ['scout', 'scout_status', 'list_apps', 'save_grouping', 'plan_research', 'show_map', 'list_sessions', 'get_view_state', 'answer_question', 'export_session']) assert.ok(byName[n], n);
     assert.equal(byName.ui_action, undefined);
-    assert.ok(tools.every((t) => !t._meta));
-    assert.equal((await rpc('resources/read', { uri: 'ui://app-scout/map.html' })).error.code, -32601);
+    for (const n of ['scout', 'plan_research', 'show_map', 'answer_question']) assert.equal(byName[n]._meta.ui.resourceUri, 'ui://app-scout/dock.html', n);
+    assert.deepEqual(byName.dock._meta.ui.visibility, ['app']);
+    const card = (await rpc('resources/read', { uri: 'ui://app-scout/dock.html' })).result.contents[0];
+    assert.equal(card.mimeType, 'text/html;profile=mcp-app');
+    assert.match(card.text, /ui\/message/);
 
     const plan = (await rpc('tools/call', { name: 'plan_research', arguments: { idea: 'Meeting notes for Vietnamese teams', segments: [{ name: 'Meeting assistant', phrases: ['ai meeting notes'] }] } })).result;
     assert.equal(plan.structuredContent, undefined);
@@ -184,7 +187,7 @@ test('a map question reaches Claude: by the monitor, or by the prompt hook when 
     const a = await ask('Who pays?');
     assert.equal(a.listening, true, 'the page knows a monitor is listening');
     for (let i = 0; i < 40 && !printed.includes(a.question.id); i++) await new Promise((r) => setTimeout(r, 100));
-    assert.match(printed, new RegExp(`^\\[App Scout map question ${a.question.id} · session saved-abc123\\] "Who pays\\?" · map context: .*answer_question`, 'm'));
+    assert.match(printed, new RegExp(`^\\[App Scout map question ${a.question.id} · session saved-abc123\\] "Who pays\\?" Looking at: repo \\(app\\) Answer here, then call answer_question`, 'm'));
     assert.equal(printed.trim().split('\n').length, 1, 'one line per question');
     await new Promise((r) => { watch.on('exit', r); watch.kill(); });
     await new Promise((r) => setTimeout(r, 200)); // let the server see the monitor's request close
@@ -199,6 +202,43 @@ test('a map question reaches Claude: by the monitor, or by the prompt hook when 
     assert.ok(snap.questions.every((q) => q.sentAt), 'the page can show "Claude has it"');
   } finally {
     watch?.kill();
+    srv.kill();
+  }
+});
+
+test('the App Scout card: only the newest acts, Send takes the question once', async () => {
+  const dir = savedSessionDir();
+  const { srv, rpc } = start(dir);
+  const dock = async (args) => (await rpc('tools/call', { name: 'dock', arguments: args })).result.structuredContent;
+  try {
+    await rpc('initialize', INIT);
+    const link = new URL(mapLink((await rpc('tools/call', { name: 'show_map', arguments: { session: 'saved-abc123' } })).result));
+    const ask = async (text) => (await fetch(`${link.origin}/api/action?t=${link.searchParams.get('t')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'question', args: { session: 'saved-abc123', text } }) })).json();
+
+    const older = (await dock({ op: 'hello' })).id;
+    const newer = (await dock({ op: 'hello' })).id;
+    assert.equal((await dock({ op: 'poll', id: older })).active, false, 'an older card steps aside');
+    const idle = await dock({ op: 'poll', id: newer });
+    assert.equal(idle.active, true);
+    assert.equal(idle.session.id, 'saved-abc123');
+    assert.match(idle.map, /\?s=saved-abc123&t=/);
+
+    const a = await ask('Who pays?');
+    assert.equal(a.dock, true, 'the page knows a card is waiting');
+    const ready = await dock({ op: 'poll', id: newer });
+    assert.equal(ready.prompt.id, a.question.id);
+    assert.match(ready.prompt.text, /^\[App Scout map question .*"Who pays\?"\nLooking at: Saved\nAnswer here, then call answer_question/);
+    assert.equal((await dock({ op: 'poll', id: newer })).prompt.id, a.question.id, 'polling leaves it queued');
+
+    assert.equal((await dock({ op: 'sent', qid: a.question.id })).taken, true);
+    assert.equal((await dock({ op: 'sent', qid: a.question.id })).taken, false, 'taken once');
+    assert.equal((await dock({ op: 'poll', id: newer })).prompt, null);
+    const res = await fetch(`${link.origin}/pending?t=${link.searchParams.get('t')}`);
+    assert.deepEqual((await res.json()).questions, [], 'the hook gets nothing already sent');
+
+    const shown = (await rpc('tools/call', { name: 'answer_question', arguments: { session: 'saved-abc123', question_id: a.question.id, answer: 'Teams.' } })).result;
+    assert.match(shown.content[0].text, /watch\.mjs" --once/, 'Claude is reminded to restart the watcher');
+  } finally {
     srv.kill();
   }
 });
