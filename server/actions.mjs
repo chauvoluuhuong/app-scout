@@ -6,7 +6,7 @@ import { ALL_STORES, isRunning, runScout, stopScout } from './pipeline.mjs';
 import { getSession, listSessions, newSession, save, setPrefs } from './sessions.mjs';
 import { snapshot } from './viewmodel.mjs';
 import { exportSession } from './export.mjs';
-import { broadcast, webInfo } from './web/server.mjs';
+import { broadcast, listening, webInfo } from './web/server.mjs';
 import { publish } from './bus.mjs';
 
 export function clampApps(n) {
@@ -34,6 +34,33 @@ export function postPlan(plan) {
   if (plans.size > 20) plans.delete(plans.keys().next().value);
   broadcast({ type: 'plan', id });
   return id;
+}
+
+// Questions asked on a map page wait here until Claude's side collects them: the plugin's
+// monitor (server/watch.mjs, which wakes Claude) or, failing that, the prompt hook
+// (server/hook.mjs, which attaches them to the user's next message). Whoever comes first
+// takes them, so Claude gets each question once.
+const inbox = []; // { session, id }
+export const hasQuestions = () => inbox.length > 0;
+
+export function takeQuestions() {
+  const out = [];
+  for (const { session, id } of inbox.splice(0)) {
+    let s;
+    try { s = getSession(session); } catch { continue; }
+    const q = s.questions.find((x) => x.id === id);
+    if (!q || q.answer) continue;
+    q.sentAt = new Date().toISOString();
+    save(s, { now: true });
+    publish({ session: s.id, kind: 'question' }); // pages show "Claude has it"
+    out.push(questionText(s, q));
+  }
+  return out;
+}
+
+/** One line for Claude: the question, where it was asked, and what to do with it. */
+export function questionText(s, q) {
+  return `[App Scout map question ${q.id} · session ${s.id}] "${q.text}" · map context: ${JSON.stringify(q.context)} · Answer it in the chat, then call answer_question (session ${s.id}, question_id ${q.id}) so the map shows the answer.`;
 }
 
 /** A plan from Claude, possibly edited by the user, turned into a focused scout. */
@@ -102,13 +129,14 @@ export async function handleAction(action, args = {}) {
       const s = getSession(args.session);
       const text = String(args.text || '').trim().slice(0, 1000);
       if (!text) throw new Error('Type a question first.');
-      // Saved with the session: Claude reads it with get_view_state, and scout_status and
-      // show_map list it until it is answered. Every open page sees it in its next snapshot.
-      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: args.context || null, at: new Date().toISOString(), answer: null };
+      // Saved with the session, then queued for Claude (see takeQuestions). get_view_state,
+      // scout_status and show_map also list it until it is answered.
+      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: args.context || null, at: new Date().toISOString(), answer: null, sentAt: null };
       s.questions.push(q);
       save(s, { now: true });
-      publish({ session: s.id, kind: 'question' });
-      return { question: q };
+      inbox.push({ session: s.id, id: q.id });
+      publish({ session: s.id, kind: 'question', fresh: true });
+      return { question: q, listening: listening() };
     }
     case 'export': {
       const s = getSession(args.session);

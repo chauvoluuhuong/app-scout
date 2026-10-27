@@ -3,7 +3,7 @@
 // stdout carries only protocol messages; every log goes to stderr.
 import { createInterface } from 'node:readline';
 import { callTool, listTools } from './tools.mjs';
-import { handleAction } from './actions.mjs';
+import { handleAction, hasQuestions, takeQuestions } from './actions.mjs';
 import { startWeb } from './web/server.mjs';
 import { log } from './lib/util.mjs';
 
@@ -14,7 +14,7 @@ const INSTRUCTIONS = `App Scout researches the app market for the user and shows
 Showing the map: the first time a result carries a map link in this conversation, open it. If you have a built-in browser (for example the Claude desktop app's browser pane), open the link there. Always also give the user the link so they can open it in their own browser too. Any number of pages can be open at once (in-app and in the browser); they share one state and update live, and open pages switch to a new scout by themselves, so don't reopen the link for every result.
 Workflow: scout (topic optional, apps default 100) -> scout_status until status is "grouping" -> list_apps -> save_grouping (4-8 segments, 2-4 keywords each naming app ids, openings tied to apps) -> summarise in 3 lines.
 If the user describes their own product idea, call plan_research first and let them start a focused scout from the plan on the map.
-Questions the user asks on the map are saved with the session; scout_status and show_map list unanswered ones. When the user says they asked on the map (or a result lists unanswered questions), call get_view_state, answer in the chat, and call answer_question so every open page shows the answer.
+Questions the user asks on the map reach you as lines starting "[App Scout map question q-… · session …]" with the map context: as a notification from the plugin's map-questions monitor, or attached to the user's next message. Answer each one in the chat right away (use list_apps or get_view_state if you need more), then call answer_question with its session and question_id so every open page shows the answer. scout_status and show_map also list unanswered ones.
 Every estimate is labelled est. with its method; never present one as a measured number.`;
 
 function send(msg) {
@@ -69,5 +69,5 @@ rl.on('line', async (line) => {
 });
 rl.on('close', () => process.exit(0));
 
-startWeb(handleAction);
+startWeb(handleAction, { has: hasQuestions, take: takeQuestions });
 log(`v${VERSION} ready`);

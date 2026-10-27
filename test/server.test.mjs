@@ -164,3 +164,41 @@ test('local web server rejects requests without the token and speaks WebSocket w
     srv.kill();
   }
 });
+
+test('a map question reaches Claude: by the monitor, or by the prompt hook when no monitor runs', async () => {
+  const dir = savedSessionDir();
+  const { srv, rpc } = start(dir);
+  const run = (script, env) => spawn(process.execPath, [join(root, 'server', script)], { env: { ...process.env, CLAUDE_PLUGIN_DATA: dir, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+  const output = (p) => new Promise((r) => { let o = ''; p.stdout.on('data', (d) => (o += d)); p.on('exit', () => r(o)); });
+  let watch;
+  try {
+    await rpc('initialize', INIT);
+    const link = new URL(mapLink((await rpc('tools/call', { name: 'show_map', arguments: { session: 'saved-abc123' } })).result));
+    const ask = async (text) => (await fetch(`${link.origin}/api/action?t=${link.searchParams.get('t')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'question', args: { session: 'saved-abc123', text, context: { focus: { type: 'app', name: 'repo' } } } }) })).json();
+
+    // The monitor finds this session's server by itself (the live file and its parent process).
+    watch = run('watch.mjs');
+    let printed = '';
+    watch.stdout.on('data', (d) => (printed += d));
+    await new Promise((r) => setTimeout(r, 800));
+    const a = await ask('Who pays?');
+    assert.equal(a.listening, true, 'the page knows a monitor is listening');
+    for (let i = 0; i < 40 && !printed.includes(a.question.id); i++) await new Promise((r) => setTimeout(r, 100));
+    assert.match(printed, new RegExp(`^\\[App Scout map question ${a.question.id} · session saved-abc123\\] "Who pays\\?" · map context: .*answer_question`, 'm'));
+    assert.equal(printed.trim().split('\n').length, 1, 'one line per question');
+    await new Promise((r) => { watch.on('exit', r); watch.kill(); });
+    await new Promise((r) => setTimeout(r, 200)); // let the server see the monitor's request close
+
+    // Without a monitor the hook attaches it to the next message, once.
+    const b = await ask('Who else?');
+    const first = await output(run('hook.mjs'));
+    assert.match(first, new RegExp(`Questions the user asked on the App Scout map:\\n\\[App Scout map question ${b.question.id}`));
+    assert.equal(await output(run('hook.mjs')), '');
+
+    const snap = await (await fetch(`${link.origin}/api/action?t=${link.searchParams.get('t')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'snapshot', args: { session: 'saved-abc123' } }) })).json();
+    assert.ok(snap.questions.every((q) => q.sentAt), 'the page can show "Claude has it"');
+  } finally {
+    watch?.kill();
+    srv.kill();
+  }
+});

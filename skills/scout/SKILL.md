@@ -25,7 +25,7 @@ When the user describes their own product idea, call `plan_research` before scou
 
 ## Questions from the map
 
-The map's **Ask Claude** button saves the question with the selection's context (path, metrics, nearby items); `scout_status` and `show_map` list unanswered ones, and `get_view_state` returns them in full. The user may also paste it into the chat, starting with `[App Scout · session … · question …]`. When the user says they asked on the map, call `get_view_state`. Answer it directly, using `list_apps` or `get_view_state` when you need more, then call `answer_question` with the session and question id so the answer appears on the map. Messages that ask you to regroup or split a segment mean: call `list_apps`, then `save_grouping` again.
+The map's **Ask Claude** button sends the question with the selection's context (path, metrics, nearby items). It reaches you as a line starting `[App Scout map question q-… · session …]`: a notification from the plugin's `map-questions` monitor, or text attached to the user's next message. `scout_status` and `show_map` also list unanswered ones, and `get_view_state` returns them in full. Answer it right away, in the chat, using `list_apps` or `get_view_state` when you need more, then call `answer_question` with the session and question id so the answer appears on the map. Messages that ask you to regroup or split a segment mean: call `list_apps`, then `save_grouping` again.
 
 ## Sessions
 

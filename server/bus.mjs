@@ -16,11 +16,11 @@ export function subscribe(fn) {
   return () => subs.delete(fn);
 }
 
-/** Resolve on the next event for `sessionId` matching `pred`, or after `ms`. */
+/** Resolve on the next event for `sessionId` (any session when null) matching `pred`, or after `ms`. */
 export function waitFor(sessionId, pred, ms) {
   return new Promise((resolve) => {
     const off = subscribe((e) => {
-      if (e.session === sessionId && pred(e)) {
+      if ((sessionId == null || e.session === sessionId) && pred(e)) {
         clearTimeout(t);
         off();
         resolve(e);

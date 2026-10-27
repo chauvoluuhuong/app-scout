@@ -8,8 +8,10 @@ import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { accept } from './ws.mjs';
-import { subscribe } from '../bus.mjs';
+import { subscribe, waitFor } from '../bus.mjs';
 import { log } from '../lib/util.mjs';
+import { register } from '../lib/live.mjs';
+import { DATA_DIR } from '../sessions.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const UI_FILE = join(here, '..', '..', 'ui', 'app.html');
@@ -17,6 +19,11 @@ export const UI_FILE = join(here, '..', '..', 'ui', 'app.html');
 const TOKEN = process.env.APP_SCOUT_DEV_TOKEN || randomBytes(16).toString('hex');
 let PORT = null;
 let handler = null; // (action, args) => Promise<result>
+let inbox = null;   // { has(), take() } for questions waiting for Claude
+let waiting = 0, lastWait = 0;
+
+/** True while the plugin's monitor is waiting for questions (or was a moment ago). */
+export const listening = () => waiting > 0 || Date.now() - lastWait < 5000;
 const clients = new Set(); // { conn, session }
 
 export const webReady = () => PORT != null;
@@ -101,6 +108,25 @@ async function route(req, res) {
       return send(res, 400, { error: e.message }, undefined, cors);
     }
   }
+  // The monitor long-polls /wait; the prompt hook reads /pending once. Both return the
+  // questions waiting for Claude as lines of text, and take them off the queue.
+  if (url.pathname === '/wait' && req.method === 'GET') {
+    waiting++;
+    let gone = false;
+    try {
+      // A monitor that died mid-wait must not take questions it can no longer print.
+      const closed = new Promise((r) => res.on('close', () => { gone = true; r(); }));
+      if (!inbox.has()) await Promise.race([waitFor(null, (e) => e.kind === 'question' && e.fresh, Math.min(Number(url.searchParams.get('ms')) || 25000, 60000)), closed]);
+    } finally {
+      waiting--;
+      lastWait = gone ? lastWait : Date.now();
+    }
+    if (gone) return;
+    return send(res, 200, { questions: inbox.take() });
+  }
+  if (url.pathname === '/pending' && req.method === 'GET') {
+    return send(res, 200, { questions: inbox.take() });
+  }
   if (url.pathname === '/export' && req.method === 'GET') {
     try {
       const r = await handler('export', { session: url.searchParams.get('s'), format: url.searchParams.get('f') || 'json', parts: (url.searchParams.get('parts') || '').split(',').filter(Boolean) });
@@ -112,8 +138,9 @@ async function route(req, res) {
   return send(res, 404, { error: 'Not found' });
 }
 
-export function startWeb(actionHandler) {
+export function startWeb(actionHandler, questionInbox = { has: () => false, take: () => [] }) {
   handler = actionHandler;
+  inbox = questionInbox;
   const server = createServer((req, res) => {
     route(req, res).catch((e) => send(res, 500, { error: e.message }));
   });
@@ -156,22 +183,26 @@ export function startWeb(actionHandler) {
 
   return new Promise((resolve) => {
     let port = 4777;
-    const tryListen = () => {
-      server.once('error', (err) => {
-        if (err.code === 'EADDRINUSE' && port < 4797) {
-          port++;
-          tryListen();
-        } else {
-          log('web server not started:', err.message);
-          resolve(null);
-        }
-      });
-      server.listen(port, '127.0.0.1', () => {
-        PORT = port;
-        log(`map page on http://127.0.0.1:${port}`);
-        resolve(port);
-      });
+    // One 'listening' handler for all attempts: a callback per listen() call would pile up
+    // and all fire at once on the port that finally works.
+    const onError = (err) => {
+      if (err.code === 'EADDRINUSE' && port < 4797) {
+        port++;
+        server.listen(port, '127.0.0.1');
+      } else {
+        server.off('error', onError);
+        log('web server not started:', err.message);
+        resolve(null);
+      }
     };
-    tryListen();
+    server.on('error', onError);
+    server.once('listening', () => {
+      server.off('error', onError);
+      PORT = port;
+      register(DATA_DIR, { port, token: TOKEN });
+      log(`map page on http://127.0.0.1:${port}`);
+      resolve(port);
+    });
+    server.listen(port, '127.0.0.1');
   });
 }

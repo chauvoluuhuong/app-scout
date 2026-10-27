@@ -442,7 +442,7 @@ function vFocus() {
   if (i.ins) h += '<p class="i">' + esc(i.ins) + '</p>';
   if (f.kind === 'app' && f.o.url) h += '<p class="i"><a href="' + esc(f.o.url) + '" data-link="' + esc(f.o.url) + '">Open the store listing</a></p>';
   for (const a of answersFor(f)) h += '<div class="qa"><b>Q:</b> ' + esc(a.text) + '<br><b>Claude:</b> ' + esc(a.answer.slice(0, 600)) + (a.answer.length > 600 ? '…' : '') + '</div>';
-  if (askState && askState.copy) h += '<p class="i" style="margin-top:8px">' + (askState.saved ? 'Saved on the map. Claude sees it next time it checks the map. To ask now, paste this into the chat:' : 'Paste this into the chat with Claude:') + '</p><pre>' + esc(askState.copy) + '</pre><div class="acts"><button data-a="done">Done</button><button class="pr" data-a="copy">Copy</button></div>';
+  if (askState) h += askStatus();
   else if (ask) h += '<div>' + sugg(f).map((t) => '<button class="chip sm' + (q === t ? ' on' : '') + '" data-s="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div><label class="sr-only" for="qi">Your question</label><input id="qi" placeholder="Your question" value="' + esc(q) + '"><p class="err" id="qe"></p><details><summary>What Claude receives</summary><pre id="cx">' + esc(JSON.stringify(contextOf(f), null, 1)) + '</pre></details><div class="acts"><button data-a="cancel">Cancel</button><button class="pr" data-a="send">Send to Claude</button></div>';
   else h += '<div class="acts">' + (sel ? '<button data-a="clear">Clear</button>' : '') + '<button class="pr" data-a="ask">Ask Claude</button></div>';
   return h;
@@ -627,15 +627,30 @@ $('lg').addEventListener('click', (e) => {
 });
 async function askToGroup() {
   const out = await sendToClaude(`[App Scout · session ${D.session.id}] The crawl finished with ${D.apps.length} apps. Please group them: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings the data supports.`, null);
-  if (out && out.copy) { askState = out; ask = true; panel(); }
+  if (out) { askState = out; ask = true; panel(); }
 }
 $('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); } });
 
-// The page can't post into the chat. A question is saved with the session (Claude sees it on
-// its next check of the map), and the panel offers the text to paste for an answer right now.
-async function sendToClaude(text, question) {
-  if (question) return { copy: text, saved: true };
-  try { await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name } } }); return { copy: text, saved: true }; } catch (e) { toast(e.message); return null; }
+// The page can't post into the chat itself. A question goes to the server, which hands it to
+// the plugin's monitor (that wakes Claude) or, without one, to the hook that attaches it to the
+// user's next message. The panel follows it: sending, Claude has it, answered.
+async function sendToClaude(text, r) {
+  if (!D) return { copy: text };
+  try {
+    if (!r) r = await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name } } });
+    setTimeout(panel, 8000); // re-check: no monitor picked it up → show the fallback
+    return { qid: r.question.id, listening: r.listening, at: Date.now(), copy: text };
+  } catch (e) { toast(e.message); return null; }
+}
+function askStatus() {
+  const qq = askState.qid && D && (D.questions || []).find((x) => x.id === askState.qid);
+  const done = '<div class="acts"><button data-a="done">Done</button></div>';
+  if (qq && qq.answer) return '<div class="qa" id="ans"><b>Q:</b> ' + esc(qq.text) + '<br><b>Claude:</b> ' + esc(qq.answer.slice(0, 1200)) + (qq.answer.length > 1200 ? '…' : '') + '</div>' + done;
+  if (qq && qq.sentAt) return '<p class="i" style="margin-top:8px;color:var(--ok)" role="status" id="ast">✓ Claude has your question. The answer will show here.</p>' + done;
+  const paste = '<details' + (askState.qid ? '' : ' open') + '><summary>Or paste it into the chat yourself</summary><pre>' + esc(askState.copy) + '</pre><div class="acts"><button data-a="copy">Copy</button></div></details>';
+  if (askState.qid && askState.listening && Date.now() - askState.at < 8000) return '<p class="i" style="margin-top:8px" role="status" id="ast">Sending to Claude…</p>' + done;
+  if (askState.qid) return '<p class="i" style="margin-top:8px" role="status" id="ast">Saved. Go back to Claude and send any message (like “ok”): App Scout attaches your question to it.</p>' + paste + done;
+  return '<p class="i" style="margin-top:8px">Paste this into the chat with Claude:</p>' + paste + done;
 }
 
 $('pn').addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (!c) return; c.checked ? exSel.add(c.dataset.e) : exSel.delete(c.dataset.e); const xe = $('xe'); if (xe) xe.textContent = ''; });
@@ -666,7 +681,7 @@ $('pn').addEventListener('click', async (e) => {
     const idea = ($('idea').value || '').trim();
     if (!idea) { $('ie').textContent = 'Describe your idea first'; return; }
     const out = await sendToClaude(`[App Scout] Plan market research for my idea: "${idea}". Break it into customers, product forms and segments to scout (each with store search phrases), then call plan_research so I can edit the plan.`, null);
-    if (out && out.copy) { askState = { copy: out.copy }; mode = 'focus'; ask = true; }
+    if (out) { askState = out; mode = 'focus'; ask = true; }
   }
   else if (a === 'startplan') {
     try { const snap = await act('start_plan', { plan, market: (D && D.session.market) || 'us' }); plan = null; mode = 'focus'; setData(snap); homeCamera(true); }

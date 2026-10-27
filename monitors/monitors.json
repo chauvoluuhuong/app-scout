@@ -1,0 +1,7 @@
+[
+  {
+    "name": "map-questions",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/server/watch.mjs\" \"${CLAUDE_PLUGIN_DATA}\"",
+    "description": "Questions asked on the App Scout map"
+  }
+]

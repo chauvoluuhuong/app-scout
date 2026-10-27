@@ -198,17 +198,25 @@ await step('Selecting a row shows the app on the map', async () => {
   return picked;
 });
 
+// The plugin's monitor and prompt hook, started from this process the way Claude Code starts
+// them next to the MCP server: they find the server through its live file.
+const plugin = (script) => spawn(process.execPath, [join(root, 'server', script), data], { env: { ...process.env, CLAUDE_PLUGIN_DATA: data }, stdio: ['ignore', 'pipe', 'ignore'] });
+const watch = plugin('watch.mjs');
+procs.push(watch);
+let notified = '';
+watch.stdout.on('data', (d) => (notified += d));
+
 let qid = '';
-await step('A question asked on the map is saved for Claude', async () => {
+await step('Ask Claude: the monitor hands the question to Claude', async () => {
+  await sleep(800); // the monitor finds the server and starts waiting
   await A.click('[data-a="ask"]');
   await A.click('[data-s]');
   await A.click('[data-a="send"]');
-  await A.waitFor(`document.getElementById('pn').innerText.includes('Saved on the map')`, 'the saved note');
-  const state = JSON.parse((await tool('get_view_state', { session: SESSION })).content[0].text);
-  const q = state.unanswered_questions.at(-1);
-  if (!q || !q.context || !q.context.focus) throw new Error('get_view_state has no question with its map context');
-  qid = q.id;
-  return `get_view_state lists ${qid} "${q.text}" with the ${q.context.focus.type} in focus`;
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, '"Claude has your question" on the page');
+  const line = notified.trim().split('\n').at(-1) || '';
+  qid = (line.match(/question (q-[a-f0-9]+)/) || [])[1];
+  if (!qid || !/map context: \{.*"focus"/.test(line)) throw new Error('the monitor printed no question with its context: ' + line);
+  return `monitor notification: ${line.slice(0, 90)}…`;
 });
 
 await step('A second copy of the map opens alongside', async () => {
@@ -224,9 +232,25 @@ await step("Claude's answer reaches both pages", async () => {
   const r = await tool('answer_question', { session: SESSION, question_id: qid, answer: `E2E answer for ${picked}: it earns from subscriptions (est., App Store in-app purchases).` });
   if (r.isError) throw new Error(r.content[0].text);
   await B.waitFor(`document.getElementById('toast').textContent.startsWith('Claude answered')`, 'the answer toast on the second page');
+  await A.waitFor(`(document.getElementById('ans') || {}).innerText?.includes('E2E answer')`, 'the answer in the first page panel');
+  return 'the asking page shows the answer in place; the second page announced it';
+});
+
+await step('Without the monitor, the next message carries the question', async () => {
+  await new Promise((r) => { watch.on('exit', r); watch.kill(); });
+  await sleep(5500); // the page stops counting on a monitor a few seconds after it goes
   await A.click('[data-a="done"]');
-  await A.waitFor(`(document.querySelector('#pn .qa') || {}).innerText?.includes('E2E answer')`, 'the answer in the first page panel');
-  return 'answer in the panel of the first page; the second page announced it';
+  await A.click('[data-a="ask"]');
+  await A.click('[data-s]:nth-of-type(2)');
+  await A.click('[data-a="send"]');
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('send any message')`, 'the "send any message" hint');
+  shotOf = A;
+  const hint = await A.js(`document.getElementById('ast').textContent`);
+  const hook = plugin('hook.mjs');
+  const out = await new Promise((r) => { let o = ''; hook.stdout.on('data', (d) => (o += d)); hook.on('exit', () => r(o)); });
+  if (!/Questions the user asked on the App Scout map:\n\[App Scout map question q-/.test(out)) throw new Error('the hook attached nothing: ' + out);
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, 'the page to see Claude got it');
+  return `page said "${hint.slice(0, 60)}…"; the hook attached the question`;
 });
 
 await step('A plan from Claude shows on every open page', async () => {
