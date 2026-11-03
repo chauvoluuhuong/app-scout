@@ -2,6 +2,8 @@
 
 App Scout is a Claude plugin (the repository root is the plugin folder). Read README.md for what it does.
 
+Project decisions (app type, install commands, release channels, visibility) live in `AGENTS.md`; the docs start at `docs/map.md`. Read both before a task. Keep every fact in one place: this file holds the merge and release steps, `AGENTS.md` the decisions.
+
 ## Branches
 
 - `main`: released versions only. Users install the plugin from it. Never commit to it directly.
@@ -30,6 +32,20 @@ gh pr merge --merge --delete-branch
 ```
 
 Never merge without a passing e2e run and its screenshots in the pull request.
+
+## Issues and hotfixes
+
+- Every bug goes on GitHub (`gh issue create`): symptom, steps to reproduce, expected vs actual, evidence, affected versions, severity, whether a release is affected. Record the lesson in `docs/failures/`.
+- The user decides hotfix or normal fix. Normal: `fix/<short-name>` from `dev`. Hotfix (a released version is broken or at risk): `hotfix/<short-name>` from the latest `app-scout--v*` tag, smallest fix plus a regression test, all checks and e2e, the user approves the patch version, bump the three version files on that branch, tag it, then a pull request into `dev`. Never merge a hotfix into `main` directly and never merge `main` into `dev`.
+- Merge conflicts: abort the merge and show the user the files, both sides and the options. Do not resolve them yourself.
+
+## Previews (autonomous)
+
+After a work branch is merged into `dev`, a preview can be tagged on that `dev` commit: `git tag -a app-scout--vX.Y.Z-preview.N -m preview && git push origin app-scout--vX.Y.Z-preview.N` (no version-file change; X.Y.Z is the next release version). Never put previews on `main`.
+
+## After every task
+
+Update `docs/` (feature file, harness, failures, learnings, `map.md`) in the same pull request, then report: done, open, risks, install commands, and a paste-ready prompt for any unrelated open work.
 
 ## Releases (only when the user asks)
 
