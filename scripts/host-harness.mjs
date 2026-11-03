@@ -3,7 +3,8 @@
 // looks like a chat: each call to renderTool(name, args) adds the tool's card as a sandboxed
 // iframe at the bottom, and the host relays the cards' requests (tools/call, ui/message,
 // ui/open-link, ...). Messages a card posts appear in the chat as user messages.
-// Usage: node scripts/host-harness.mjs   then open http://127.0.0.1:4790
+// Usage: node scripts/host-harness.mjs   then open http://127.0.0.1:4790 (add ?noipc to refuse
+// the cards' tool calls, like a host without MCP tool IPC)
 // (HARNESS_PORT changes the port; CLAUDE_PLUGIN_DATA the data directory.)
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -61,6 +62,8 @@ window.addEventListener('message', async (e) => {
   if (m.method === 'ui/initialize') { post({ id: m.id, result: { protocolVersion: '2026-01-26', hostInfo: { name: 'harness', version: '0' }, hostCapabilities: {}, hostContext: { theme: 'dark', displayMode: 'inline', availableDisplayModes: ['inline'] } } }); return; }
   if (m.method === 'ui/notifications/initialized') { post({ method: 'ui/notifications/tool-result', params: f.result }); return; }
   if (m.method === 'ui/notifications/size-changed') { f.style.height = m.params.height + 'px'; return; }
+  // ?noipc acts like a host that renders cards but won't run their tool calls (Claude Code desktop).
+  if (m.method === 'tools/call' && location.search.includes('noipc')) { post({ id: m.id, error: { code: -32000, message: 'IPC not available for MCP tool call' } }); return; }
   if (m.method === 'tools/call') { const r = await rpc('tools/call', m.params); post({ id: m.id, result: r.result }); return; }
   if (m.method === 'ui/message') { const t = m.params.content.map((c) => c.text).join('\\n'); window.messages.push(t); say('USER: ' + t, 'user'); post({ id: m.id, result: {} }); return; }
   if (m.method === 'ui/open-link') { say('open link: ' + m.params.url); post({ id: m.id, result: {} }); return; }

@@ -16,5 +16,8 @@ How they talk: Claude calls a tool → the server updates the session → the bu
 ## Tests and evidence
 - `test/analysis.test.mjs`, `test/server.test.mjs`; e2e `scripts/e2e.mjs` (see [harness](../harness/README.md)); screenshots on the `e2e-evidence` branch.
 
+## Chat card in hosts without tool calls
+Some hosts render the card but refuse its tool calls (Claude Code desktop: "IPC not available"). The card then takes the map link from the tool result and shows only Open map and the link; Send and Copy need tool calls and are off. Why: [failure 2026-11-03](../failures/2026-11-03-card-without-ipc.md).
+
 ## Known limits
 - Runs only where Claude starts local plugin servers (not claude.ai chat); see the README table.
