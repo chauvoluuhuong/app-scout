@@ -79,4 +79,4 @@ createServer(async (req, res) => {
   }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(PAGE);
-}).listen(Number(process.env.HARNESS_PORT) || 4790, '127.0.0.1', function () { console.log(`harness on http://127.0.0.1:${this.address().port}`); });
+}).listen(Number(process.env.HARNESS_PORT ?? 4790), '127.0.0.1', function () { console.log(`harness on http://127.0.0.1:${this.address().port}`); });
