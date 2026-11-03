@@ -83,9 +83,16 @@ npm test                                  # unit and protocol tests, offline
 node scripts/e2e.mjs                      # end-to-end: the real server and two map pages in headless Chrome, screenshots in e2e-out/
 node scripts/try.mjs "meeting notes" 20   # run a real scout through the MCP server
 node scripts/serve-dev.mjs                # serve the browser map for the dev sessions (token "dev")
+npm run install:latest                    # refresh the marketplace and update your installed App Scout; then start a new Claude Code session
 node scripts/host-harness.mjs             # a minimal MCP Apps chat host for the App Scout card, on http://127.0.0.1:4790
 claude plugin validate . --strict
 ```
+
+## Contributing
+
+Branch from `dev`: `feat/<name>`, `fix/<name>` or `chore/<name>`. Run `npm test`, `claude plugin validate . --strict` and `node scripts/e2e.mjs` (see [docs/harness/README.md](docs/harness/README.md)), then open a pull request into `dev` with what changed, the test results and the e2e screenshots. Maintainers merge `dev` into `main` and tag releases. Found a bug? Open an issue with steps to reproduce and evidence.
+
+Working with an AI agent: point it at `AGENTS.md` (project decisions) and `docs/map.md` (how the docs are organised) before it changes anything. Example: "Read AGENTS.md and docs/map.md, then fix issue #12: reproduce it, add a regression test and open a pull request into dev."
 
 ## License
 
