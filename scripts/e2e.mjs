@@ -385,6 +385,20 @@ await step('Chat: after the answer a new card appears below; the old one steps a
   return 'old card: "moved to the newest card below"; the map shows the answer';
 });
 
+// Claude Code desktop renders the card but refuses its tool calls ("IPC not available for MCP
+// tool call"). The card must still offer the map from the link in the tool result (issue #11).
+await step('Chat: a host that refuses the card\'s tool calls still gets Open map', async () => {
+  await B.go(harnessUrl + '/?noipc');
+  const r = await B.js(`renderTool('show_map', { session: '${SESSION}' })`);
+  const link = mapLink(r);
+  await B.waitFor(`${card(0)}.querySelector('[data-a="map"]') && ${card(0)}.body.innerText.includes(${JSON.stringify(link)})`, 'Open map and the link on the card');
+  if (/could not start|IPC/.test(await B.js(`${card(0)}.body.innerText`))) throw new Error('the card still shows the IPC error');
+  await B.js(`${card(0)}.querySelector('[data-a="map"]').click()`);
+  await B.waitFor(`[...document.querySelectorAll('.msg')].some((m) => m.textContent === 'open link: ' + ${JSON.stringify(link)})`, 'the host asked to open the map');
+  shotOf = B;
+  return 'card shows Open map and the link; clicking it asks the host to open ' + link.replace(/[?].*/, '');
+});
+
 cleanup();
 
 // ------------------------------------------------------------------ report

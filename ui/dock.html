@@ -50,13 +50,22 @@ const request = (method, params) => new Promise((resolve, reject) => { const id 
 const call = async (args) => { const r = await request('tools/call', { name: 'dock', arguments: args }); if (r && r.isError) throw new Error((r.content && r.content[0] && r.content[0].text) || 'Failed'); return r.structuredContent || {}; };
 
 let ctx = {}, me = null, st = { active: true, prompt: null, session: null, map: null }, phase = 'idle', sentQ = null, err = '', timer = null;
+// The map link from the tool result itself ("Map: http://..."), so the card can open the map even
+// in hosts that render the card but won't run its tool calls (offline: Send and Copy are off).
+let link = null, offline = false;
+function linkFrom(r) {
+  const s = r && r.structuredContent;
+  if (s && typeof s.map === 'string') return s.map;
+  for (const c of (r && r.content) || []) { const m = c && c.type === 'text' && /Map: (https?:\/\/\S+)/.exec(c.text || ''); if (m) return m[1]; }
+  return null;
+}
 
 window.addEventListener('message', (e) => {
   if (e.source !== window.parent) return;
   const m = e.data;
   if (!m || m.jsonrpc !== '2.0') return;
   if (m.method === undefined) { const p = pending.get(m.id); if (!p) return; pending.delete(m.id); m.error ? p.reject(new Error(m.error.message || 'Failed')) : p.resolve(m.result); return; }
-  if (m.method === 'ui/notifications/tool-result') poll();
+  if (m.method === 'ui/notifications/tool-result') { link = linkFrom(m.params) || link; me ? poll() : render(); }
   else if (m.method === 'ui/notifications/host-context-changed') { ctx = { ...ctx, ...m.params }; render(); }
   else if (m.method === 'ping' || m.method === 'ui/resource-teardown') post({ id: m.id, result: {} });
   else if (m.id !== undefined) post({ id: m.id, error: { code: -32601, message: 'Method not found: ' + m.method } });
@@ -100,12 +109,16 @@ function flash(t) { note = t; setTimeout(() => { note = ''; render(); }, 2500); 
 
 function render() {
   if (!st.active) { $('root').innerHTML = '<div class="moved">App Scout moved to the newest card below ↓</div>'; return size(); }
-  const name = st.session ? st.session.name : 'No research yet';
+  const map = st.map || link;
+  const name = st.session ? st.session.name : offline ? 'Live market map' : 'No research yet';
   const canPip = (ctx.availableDisplayModes || []).includes('pip');
   let h = '<div class="card"><div class="hd"><b>App Scout</b><span>' + esc(name) + '</span>' +
     (canPip ? '<button data-a="pip" title="Keep this card in view">' + (ctx.displayMode === 'pip' ? 'Dock' : 'Float') + '</button>' : '') +
-    (st.map ? '<button data-a="map">Open map</button>' : '') + '</div>';
-  if (st.prompt) {
+    (map ? '<button class="' + (offline ? 'pr' : '') + '" data-a="map">Open map</button>' : '') + '</div>';
+  if (offline) {
+    h += map ? '<p class="st" role="status"><a href="' + esc(map) + '" target="_blank" rel="noopener" style="color:var(--mut)">' + esc(map) + '</a></p>'
+      : '<p class="st" role="status">The map link appears here when App Scout returns it.</p>';
+  } else if (st.prompt) {
     h += '<div class="q"><p class="k">Prompt ready from the map</p><p>' + esc(st.prompt.question) + '</p></div>' +
       '<div class="acts"><button data-a="copy">Copy</button><button class="pr" data-a="send" id="send"' + (phase === 'sending' ? ' disabled' : '') + '>' + (phase === 'sending' ? 'Sending…' : 'Send <kbd>⏎</kbd>') + '</button></div>';
   } else if (phase === 'sent') {
@@ -124,7 +137,7 @@ document.addEventListener('click', async (e) => {
   const a = b.dataset.a;
   if (a === 'send') send();
   else if (a === 'copy') copy();
-  else if (a === 'map') request('ui/open-link', { url: st.map }).catch(() => {});
+  else if (a === 'map') { const url = st.map || link; request('ui/open-link', { url }).catch(() => window.open(url, '_blank', 'noopener')); }
   else if (a === 'pip') { try { const r = await request('ui/request-display-mode', { mode: ctx.displayMode === 'pip' ? 'inline' : 'pip' }); ctx.displayMode = r && r.mode; } catch (err2) {} render(); }
 });
 // Enter sends the ready prompt, unless focus is on another button.
@@ -139,7 +152,7 @@ function size() { requestAnimationFrame(() => { const h = Math.ceil(document.doc
     ctx = (r && r.hostContext) || {};
     post({ method: 'ui/notifications/initialized' });
     me = (await call({ op: 'hello' })).id;
-  } catch (e) { err = 'App Scout card could not start: ' + e.message; render(); return; }
+  } catch (e) { offline = true; render(); return; } // the host won't run the card's tool calls: keep the map link
   poll();
 })();
 })();
