@@ -1,6 +1,6 @@
 {
   "name": "app-scout",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "App Scout: app market research on a live map, as a Claude plugin.",
   "type": "module",
@@ -9,6 +9,7 @@
   "scripts": {
     "test": "node --test test/",
     "try": "node scripts/try.mjs",
-    "dev": "node scripts/serve-dev.mjs"
+    "dev": "node scripts/serve-dev.mjs",
+    "install:latest": "claude plugin marketplace update app-scout && claude plugin update app-scout@app-scout"
   }
 }
