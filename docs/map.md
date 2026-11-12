@@ -8,7 +8,8 @@ Read in this order: AGENTS.md → this file → the feature you are touching →
 | harness/ | how to run the tests and the e2e |
 | infrastructure/ | what runs where |
 | failures/ | what broke, why, how to avoid it |
-| integrations/, releases/, learnings/, ideas/ | created when the first entry is needed (templates: build-app-workflow `references/docs-structure.md`) |
+| releases/ | one file per production release |
+| integrations/, learnings/, ideas/ | created when the first entry is needed (templates: build-app-workflow `references/docs-structure.md`) |
 
 ## Features
 - [Live map](features/live-map.md) — the local server, the browser map and the chat card
@@ -21,3 +22,6 @@ Read in this order: AGENTS.md → this file → the feature you are touching →
 
 ## Integrations
 The public store pages and APIs App Scout reads are listed in the README's "What App Scout runs, sends and stores".
+
+## Releases
+- [v0.3.2](releases/v0.3.2.md) — 2026-11-12
