@@ -4,7 +4,7 @@
 // (server/hook.mjs) are started by the same Claude Code process as the MCP server, so they
 // pick the server whose parent is one of their own ancestors. Standard library only.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const liveDir = (dataDir) => join(dataDir, 'live');
@@ -12,9 +12,11 @@ const liveDir = (dataDir) => join(dataDir, 'live');
 /** Called by the MCP server once its web server listens. Removed again on exit. */
 export function register(dataDir, info) {
   const dir = liveDir(dataDir);
-  mkdirSync(dir, { recursive: true });
+  // The file holds the token, so only this user may read it.
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
   const file = join(dir, `${process.pid}.json`);
-  writeFileSync(file, JSON.stringify({ pid: process.pid, ppid: process.ppid, ...info }));
+  writeFileSync(file, JSON.stringify({ pid: process.pid, ppid: process.ppid, ...info }), { mode: 0o600 });
+  try { chmodSync(dir, 0o700); chmodSync(file, 0o600); } catch {} // a folder or file from an older version
   const drop = () => rmSync(file, { force: true });
   process.on('exit', drop);
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => process.exit(0));
