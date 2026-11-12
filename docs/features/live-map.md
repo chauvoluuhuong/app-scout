@@ -19,5 +19,8 @@ How they talk: Claude calls a tool → the server updates the session → the bu
 ## Chat card in hosts without tool calls
 Some hosts render the card but refuse its tool calls (Claude Code desktop: "IPC not available"). The card then takes the map link from the tool result and shows only Open map and the link; Send and Copy need tool calls and are off. Why: [failure 2026-11-03](../failures/2026-11-03-card-without-ipc.md).
 
+## What the map server checks
+Every request: listens on `127.0.0.1` only, `Host` is local, `Origin` (when a browser sends one) is the map page itself, and the token matches. No CORS headers. What a page sends is cut by `bounded()` before it is saved or put in a question for Claude. The panel keeps the user's typing, focus and cursor across redraws. Why: [failure 2026-11-12](../failures/2026-11-12-panel-typing-and-map-server.md).
+
 ## Known limits
 - Runs only where Claude starts local plugin servers (not claude.ai chat); see the README table.

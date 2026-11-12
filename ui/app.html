@@ -131,7 +131,9 @@ a{color:var(--ok)}
 (function () {
 'use strict';
 const $ = (id) => document.getElementById(id);
-const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+// Links come from store listings: only web links are shown or opened.
+const webUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
 const fmt = (n) => n == null ? '—' : n >= 1e9 ? (n / 1e9).toFixed(1).replace('.0', '') + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(Math.round(n));
 const TIER = ['dim', 'medium', 'bright'];
 const BR = ['#2F6B58', '#5DCAA5', '#E1FBF2'], BA = [0.8, 0.92, 1], RAD = [2, 3.4, 5.4], RING = ['#5C7A96', '#8FB3D9', '#D6E8FA'];
@@ -450,7 +452,7 @@ function vFocus() {
   let h = (needsGrouping() && f.kind === 'category' ? groupCallout() : '') + '<p class="t">' + esc(f.name) + '</p><p class="p">' + esc(p.slice(0, -1).join(' › ') || (D.session.plan ? 'Focused scout' : 'Category overview')) + (sel ? ' · selected' : '') + '</p>';
   if (i.m.length) h += '<div class="g">' + i.m.map((m, j) => '<button class="mb" data-m="' + j + '" title="Open as a table"><span>' + esc(m[0]) + '<svg class="i" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M4 5h16v14H4zM4 10h16M10 5v14"/></svg></span><b>' + esc(m[1]) + '</b></button>').join('') + '</div>';
   if (i.ins) h += '<p class="i">' + esc(i.ins) + '</p>';
-  if (f.kind === 'app' && f.o.url) h += '<p class="i"><a href="' + esc(f.o.url) + '" data-link="' + esc(f.o.url) + '">Open the store listing</a></p>';
+  if (f.kind === 'app' && webUrl(f.o.url)) h += '<p class="i"><a href="' + esc(f.o.url) + '" data-link="' + esc(f.o.url) + '">Open the store listing</a></p>';
   for (const a of answersFor(f)) h += '<div class="qa"><b>Q:</b> ' + esc(a.text) + '<br><b>Claude:</b> ' + esc(a.answer.slice(0, 600)) + (a.answer.length > 600 ? '…' : '') + '</div>';
   if (askState) h += askStatus();
   else if (ask) h += '<div>' + sugg(f).map((t) => '<button class="chip sm' + (q === t ? ' on' : '') + '" data-s="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div><label class="sr-only" for="qi">Your question</label><input id="qi" placeholder="Your question" value="' + esc(q) + '"><p class="err" id="qe"></p><details><summary>What Claude receives</summary><pre id="cx">' + esc(JSON.stringify(contextOf(f), null, 1)) + '</pre></details><div class="acts"><button data-a="cancel">Cancel</button><button class="pr" data-a="send">Send to Claude</button></div>';
@@ -478,10 +480,19 @@ function vExport() {
   return '<p class="t">Export session</p><p class="p">' + esc(exFor ? exFor : D ? D.session.name : '') + '</p><p class="k">Include</p>' + EXP.map((e) => '<label class="ck"><input type="checkbox" data-e="' + e[0] + '"' + (exSel.has(e[0]) ? ' checked' : '') + '> ' + esc(e[1]) + '</label>').join('') +
     '<p class="k">Format</p><div>' + [['md', 'Markdown report'], ['csv', 'CSV (apps)'], ['json', 'JSON (everything)']].map((f) => '<button class="chip sm' + (exFmt === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>').join('') + '</div><p class="err" id="xe"></p><div class="acts"><button data-a="closeexp">Cancel</button><button class="pr" data-a="doexp">Export</button></div>';
 }
+// The panel is redrawn whenever the data changes (apps arriving, an answer). What the user is
+// typing, where the cursor is and what they opened must survive that.
+let ideaText = '';
 function panel() {
   const pn = $('pn');
+  const on = document.activeElement, keep = on && on.id && pn.contains(on) ? { id: on.id, a: on.selectionStart, b: on.selectionEnd } : null;
+  const was = $('idea'); if (was) ideaText = was.value;
+  const wasOpen = pn.querySelector('details') ? pn.querySelector('details').open : null;
   pn.innerHTML = mode === 'plan' ? vPlan() : mode === 'idea' ? vIdea() : mode === 'sessions' ? vSessions() : mode === 'export' ? vExport() : vFocus();
   const qi = $('qi'); if (qi) qi.addEventListener('input', () => { q = qi.value; $('qe').textContent = ''; const c = $('cx'); if (c) c.textContent = JSON.stringify(contextOf(focus), null, 1); });
+  const idea = $('idea'); if (idea) { idea.value = ideaText; idea.addEventListener('input', () => { ideaText = idea.value; $('ie').textContent = ''; }); }
+  const dt = pn.querySelector('details'); if (dt && wasOpen != null) dt.open = wasOpen;
+  if (keep) { const n = $(keep.id); if (n) { n.focus(); try { n.setSelectionRange(keep.a, keep.b); } catch (e) {} } }
   progress(); legend(); banner(); status(); empty();
 }
 
@@ -679,7 +690,7 @@ function askStatus() {
 
 $('pn').addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (!c) return; c.checked ? exSel.add(c.dataset.e) : exSel.delete(c.dataset.e); const xe = $('xe'); if (xe) xe.textContent = ''; });
 $('pn').addEventListener('click', async (e) => {
-  const lnk = e.target.closest('[data-link]'); if (lnk) { e.preventDefault(); window.open(lnk.dataset.link, '_blank', 'noopener'); return; }
+  const lnk = e.target.closest('[data-link]'); if (lnk) { e.preventDefault(); if (webUrl(lnk.dataset.link)) window.open(lnk.dataset.link, '_blank', 'noopener,noreferrer'); return; }
   const b = e.target.closest('[data-a],[data-s],[data-c],[data-r],[data-x],[data-f],[data-m]'); if (!b) return; const d = b.dataset;
   if (d.m !== undefined) { const m = MREF[+d.m]; const sc = m[3] || null; const ttl = sc && sc.app ? sc.app.n + ' · details' : m[2] === 'apps' ? (sc && sc.seg ? segById(sc.seg).name + ' · apps' : sc && sc.kw ? kwById(sc.kw).name + ' · apps' + (sc.lens ? ' · money gaps' : '') : 'Apps found') : m[2] === 'platforms' ? (sc && sc.seg ? segById(sc.seg).name + ' · platforms' : 'Platforms') : m[2] === 'segments' ? 'Segments' : 'Reviews read'; return openModal(m[2], sc, ttl); }
   if (d.s) { q = d.s; return panel(); }
@@ -705,7 +716,7 @@ $('pn').addEventListener('click', async (e) => {
     const idea = ($('idea').value || '').trim();
     if (!idea) { $('ie').textContent = 'Describe your idea first'; return; }
     const out = await sendToClaude(`[App Scout] Plan market research for my idea: "${idea}". Break it into customers, product forms and segments to scout (each with store search phrases), then call plan_research so I can edit the plan.`, null);
-    if (out) { askState = out; mode = 'focus'; ask = true; }
+    if (out) { askState = out; mode = 'focus'; ask = true; ideaText = ''; }
   }
   else if (a === 'startplan') {
     if (busy()) return;
@@ -715,7 +726,7 @@ $('pn').addEventListener('click', async (e) => {
     finally { starting = false; busyButtons(); }
     return;
   }
-  else if (a === 'closeplan' || a === 'closeses' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') plan = null; }
+  else if (a === 'closeplan' || a === 'closeses' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') { plan = null; ideaText = ''; } }
   else if (a === 'doexp') {
     if (!exSel.size) { $('xe').textContent = 'Pick at least one thing to include'; return; }
     const sid = exFor || D.session.id;

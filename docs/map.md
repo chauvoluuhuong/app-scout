@@ -18,10 +18,12 @@ Read in this order: AGENTS.md → this file → the feature you are touching →
 - [2026-10-29 Adopt build-app-workflow](plans/2026-10-29-adopt-build-app-workflow.md) — done
 
 ## Failures
+- [2026-11-12 Typing lost; map server hardening](failures/2026-11-12-panel-typing-and-map-server.md) — panel redraws wiped typing; Origin check, bounded input, private token file · issue #16
 - [2026-11-03 Card without tool calls](failures/2026-11-03-card-without-ipc.md) — the card gave up in Claude Code desktop · issue #11
 
 ## Integrations
 The public store pages and APIs App Scout reads are listed in the README's "What App Scout runs, sends and stores".
 
 ## Releases
+- [v0.3.3](releases/v0.3.3.md) — 2026-11-12
 - [v0.3.2](releases/v0.3.2.md) — 2026-11-12

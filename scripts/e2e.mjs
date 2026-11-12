@@ -300,6 +300,7 @@ await step('Crawl progress sits in the middle of the map', async () => {
 
 // Claude Desktop runs one App Scout server per chat and can leave old ones running. The crawl
 // runs in one server; the page here is open on another, and still follows it live.
+let crawlFile = null, crawlState = null;
 await step('A page on another App Scout server follows the crawl live', async () => {
   const other = startServer();
   await other('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e-2', version: '0' } });
@@ -307,15 +308,30 @@ await step('A page on another App Scout server follows the crawl live', async ()
   if (new URL(otherLink).port === new URL(link).port) throw new Error('the second server took the same port');
   await A.go(otherLink);
   await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 42%'`, 'the crawl at 42%');
-  const file = join(data, 'sessions', `${RUNNING}.json`);
-  const s = JSON.parse(readFileSync(file, 'utf8'));
+  const file = crawlFile = join(data, 'sessions', `${RUNNING}.json`);
+  const s = crawlState = JSON.parse(readFileSync(file, 'utf8'));
+  return `at 42% on a page on port ${new URL(otherLink).port}, crawled by the server on port ${new URL(link).port}`;
+});
+
+// The panel is redrawn when apps arrive. What the user is typing, and the cursor, must stay.
+await step('Typing in the panel survives live updates', async () => {
+  const file = crawlFile, s = crawlState;
+  await A.js(`(() => { document.getElementById('bPlan').click(); const t = document.getElementById('idea'); t.value = 'Notes app for small clinics'; t.dispatchEvent(new Event('input', { bubbles: true })); t.setSelectionRange(9, 9); return true; })()`);
   // What the crawling server writes as it goes, then when it finishes.
   writeFileSync(file, JSON.stringify({ ...s, apps: spiral(fx.apps.slice(0, 40)), progress: { ...s.progress, pct: 77, step: 'Reading prices and reviews' } }));
   await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 77%'`, 'the progress pushed from the other server');
+  const kept = JSON.parse(await A.js(`(() => { const t = document.getElementById('idea'); return JSON.stringify({ v: t ? t.value : null, focus: document.activeElement === t, caret: t ? t.selectionStart : null }); })()`));
+  if (kept.v !== 'Notes app for small clinics' || !kept.focus || kept.caret !== 9) throw new Error('typing was lost on a live update: ' + JSON.stringify(kept));
+  return `the idea box kept "${kept.v}", the focus and the cursor while the crawl went 42% → 77%`;
+});
+
+await step('The crawl finishes on the page of the other server', async () => {
+  const file = crawlFile, s = crawlState;
+  await A.js(`document.getElementById('bPlan').click()`);
   writeFileSync(file, JSON.stringify({ ...s, status: 'grouping', apps: spiral(fx.apps), progress: { ...s.progress, pct: 100, step: 'Waiting for Claude to group the apps' } }));
   await A.waitFor(`document.getElementById('stat').textContent.startsWith('${fx.apps.length} apps')`, 'the finished crawl');
   await A.waitFor(`!document.getElementById('pc').classList.contains('mid')`, 'the card back in the corner');
-  return `42% → 77% → finished with ${fx.apps.length} apps, pushed from the server that crawled to a page on port ${new URL(otherLink).port}`;
+  return `finished with ${fx.apps.length} apps, pushed from the server that crawled`;
 });
 
 await step('Export downloads the report', async () => {
