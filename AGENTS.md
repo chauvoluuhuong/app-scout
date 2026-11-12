@@ -25,7 +25,7 @@ Docs start at [docs/map.md](docs/map.md). The merge and release steps are in [.c
 `npm test` · `claude plugin validate . --strict` · e2e: `node scripts/e2e.mjs` (harness: [docs/harness/README.md](docs/harness/README.md)); `--publish` puts the screenshots on `e2e-evidence`, never on `dev` or `main`.
 
 ### Install
-- Preview: `claude plugin marketplace add chauvoluuhuong/app-scout@dev` then `claude plugin install app-scout@app-scout` (the `dev` branch; to test a tagged preview, check out the tag locally and add the marketplace from that folder).
+- Preview (the `dev` branch): on a computer without App Scout, `claude plugin marketplace add chauvoluuhuong/app-scout@dev` then `claude plugin install app-scout@app-scout`. Where the production marketplace is already added, that command is refused (the name `app-scout` is taken): run a checkout instead, `git switch dev` (or a preview tag) and `claude --plugin-dir .`.
 - Production: `claude plugin marketplace add chauvoluuhuong/app-scout` then `claude plugin install app-scout@app-scout`
 - Update an existing install: `claude plugin update app-scout@app-scout`
 

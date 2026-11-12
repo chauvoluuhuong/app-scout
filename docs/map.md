@@ -25,4 +25,5 @@ Read in this order: AGENTS.md → this file → the feature you are touching →
 The public store pages and APIs App Scout reads are listed in the README's "What App Scout runs, sends and stores".
 
 ## Releases
+- [v0.3.3](releases/v0.3.3.md) — 2026-11-12
 - [v0.3.2](releases/v0.3.2.md) — 2026-11-12
