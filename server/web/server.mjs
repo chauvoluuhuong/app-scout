@@ -64,8 +64,17 @@ function okHost(req) {
   return h === `127.0.0.1:${PORT}` || h === `localhost:${PORT}`;
 }
 
+// A browser names the page a request comes from. The map page is the only page allowed to
+// call this server, so a request from any other origin is refused even if it has the token.
+// Helpers outside a browser (the monitor, the hook, tests) send no Origin.
+function okOrigin(req) {
+  const o = req.headers.origin;
+  return !o || o === `http://127.0.0.1:${PORT}` || o === `http://localhost:${PORT}`;
+}
+
 function send(res, code, body, type = 'application/json; charset=utf-8', extra = {}) {
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra });
+  // no-referrer: the link holds the token, so it must not travel to a store page opened from the map.
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', ...extra });
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
@@ -88,9 +97,8 @@ function readBody(req) {
 async function route(req, res) {
   const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
   if (!okHost(req)) return send(res, 403, { error: 'Bad host' });
+  if (!okOrigin(req)) return send(res, 403, { error: 'Bad origin' });
   if (url.searchParams.get('t') !== TOKEN) return send(res, 403, { error: 'Missing or wrong token' });
-  const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' };
-  if (req.method === 'OPTIONS') return send(res, 204, '', 'text/plain', { ...cors, 'Access-Control-Allow-Methods': 'GET, POST' });
 
   if (url.pathname === '/' && req.method === 'GET') {
     return send(res, 200, readFileSync(UI_FILE), 'text/html; charset=utf-8', { 'Content-Security-Policy': "default-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:* ; img-src 'self' data:" });
@@ -100,12 +108,12 @@ async function route(req, res) {
     try {
       body = JSON.parse(await readBody(req));
     } catch {
-      return send(res, 400, { error: 'Invalid JSON' }, undefined, cors);
+      return send(res, 400, { error: 'Invalid JSON' });
     }
     try {
-      return send(res, 200, await handler(body.action, body.args || {}), undefined, cors);
+      return send(res, 200, await handler(body.action, body.args || {}));
     } catch (e) {
-      return send(res, 400, { error: e.message }, undefined, cors);
+      return send(res, 400, { error: e.message });
     }
   }
   // The monitor long-polls /wait; the prompt hook reads /pending once. Both return the
@@ -146,7 +154,7 @@ export function startWeb(actionHandler, questionInbox = { has: () => false, take
   });
   server.on('upgrade', (req, socket) => {
     const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
-    if (!okHost(req) || url.pathname !== '/ws' || url.searchParams.get('t') !== TOKEN) {
+    if (!okHost(req) || !okOrigin(req) || url.pathname !== '/ws' || url.searchParams.get('t') !== TOKEN) {
       socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
       return;
     }

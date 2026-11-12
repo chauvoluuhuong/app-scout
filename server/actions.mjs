@@ -9,6 +9,17 @@ import { exportSession } from './export.mjs';
 import { broadcast, listening, webInfo } from './web/server.mjs';
 import { publish } from './bus.mjs';
 
+/** What a page sends is kept and shown to Claude, so it is cut to a sane size here, whatever
+ *  the page checked itself: short one-line strings, short lists, few keys, shallow. */
+export function bounded(v, depth = 0) {
+  if (v == null || typeof v === 'boolean') return v ?? null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string') return v.replace(/\s+/g, ' ').slice(0, 200);
+  if (depth >= 4 || typeof v !== 'object') return null;
+  if (Array.isArray(v)) return v.slice(0, 8).map((x) => bounded(x, depth + 1));
+  return Object.fromEntries(Object.entries(v).slice(0, 16).map(([k, x]) => [String(k).slice(0, 40), bounded(x, depth + 1)]));
+}
+
 export function clampApps(n) {
   const v = Math.round(Number(n) || 100);
   return Math.max(20, Math.min(500, v));
@@ -113,9 +124,10 @@ export function dock(op, args = {}) {
  *  was looking at on the map, and what to do with it. */
 export function questionText(s, q) {
   const c = q.context || {}, f = c.focus || {};
-  const where = (f.path && f.path.length ? f.path.join(' › ') : f.name) || s.name;
-  const nums = Object.entries(c.metrics || {}).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`).join(', ');
-  const near = (c.nearby || []).map((x) => x.name || x).filter(Boolean).slice(0, 5).join(', ');
+  const cut = (t, n) => { t = String(t); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+  const where = cut((f.path && f.path.length ? f.path.map((x) => cut(x, 60)).join(' › ') : f.name) || s.name, 300);
+  const nums = cut(Object.entries(c.metrics || {}).map(([k, v]) => `${k.replace(/_/g, ' ')} ${cut(v, 60)}`).join(', '), 400);
+  const near = (c.nearby || []).map((x) => (x && x.name) || x).filter(Boolean).slice(0, 5).map((x) => cut(x, 60)).join(', ');
   return [
     `[App Scout map question ${q.id} · session ${s.id}] "${q.text}"`,
     `Looking at: ${where}${f.type ? ` (${f.type})` : ''}${nums ? ` · ${nums}` : ''}${near ? ` · nearby: ${near}` : ''}`,
@@ -181,7 +193,8 @@ export async function handleAction(action, args = {}) {
       // Each page keeps its own camera; the session keeps whatever the user looked at last,
       // which is what get_view_state tells Claude.
       const s = getSession(args.session);
-      s.view = { ...s.view, ...(args.state || {}) };
+      const st = bounded(args.state) || {};
+      s.view = { ...s.view, ...Object.fromEntries(['lens', 'focus', 'camera'].filter((k) => k in st).map((k) => [k, st[k]])) };
       save(s);
       return { ok: true };
     }
@@ -191,7 +204,7 @@ export async function handleAction(action, args = {}) {
       if (!text) throw new Error('Type a question first.');
       // Saved with the session, then queued for Claude (see takeQuestions). get_view_state,
       // scout_status and show_map also list it until it is answered.
-      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: args.context || null, at: new Date().toISOString(), answer: null, sentAt: null };
+      const q = { id: `q-${randomBytes(3).toString('hex')}`, text, context: bounded(args.context), at: new Date().toISOString(), answer: null, sentAt: null };
       s.questions.push(q);
       save(s, { now: true });
       inbox.push({ session: s.id, id: q.id });
