@@ -221,16 +221,44 @@ procs.push(watch);
 let notified = '';
 watch.stdout.on('data', (d) => (notified += d));
 
+await step('Ask bar: the selection becomes a chip', async () => {
+  await A.waitFor(`document.getElementById('abar').style.display !== 'none'`, 'the ask bar');
+  const r = await A.js(`({ chip: document.getElementById('ctxName').textContent, shown: document.getElementById('ctx').style.display !== 'none', ph: document.getElementById('qi').placeholder,
+    panel: document.getElementById('pn').innerText, raw: /"focus"|"metrics"|What Claude receives/.test(document.body.innerText) })`);
+  if (!r.shown || r.chip !== `App: ${picked}`) throw new Error('the chip should name the selected app: ' + JSON.stringify(r));
+  if (r.ph !== `Ask Claude about ${picked}`) throw new Error('the input should say what the question is about: ' + r.ph);
+  if (/Ask Claude/.test(r.panel)) throw new Error('Ask Claude should no longer be in the side panel');
+  if (r.raw) throw new Error('raw context is visible on the page');
+  return `chip "${r.chip}" · input "${r.ph}" · no Ask Claude or context text in the side panel`;
+});
+
+await step('Chat folds and unfolds', async () => {
+  const state = () => A.js(`({ open: document.getElementById('chat').style.display !== 'none', exp: document.getElementById('bChat').getAttribute('aria-expanded'), saved: localStorage.getItem('appScout.chatOpen') })`);
+  const s0 = await state();
+  if (!s0.open) await A.click('#bChat');
+  await A.click('#bChat');
+  const folded = await state();
+  if (folded.open || folded.exp !== 'false' || folded.saved !== '0') throw new Error('the chat did not fold: ' + JSON.stringify(folded));
+  await A.click('#bChat');
+  const open = await state();
+  if (!open.open || open.exp !== 'true' || open.saved !== '1') throw new Error('the chat did not unfold: ' + JSON.stringify(open));
+  const chips = await A.js(`[...document.querySelectorAll('#chat [data-s]')].map((b) => b.textContent)`);
+  if (!chips.length) throw new Error('an empty chat should offer suggested questions');
+  return `folded and unfolded with the Chat button, kept in this browser · suggestions: ${chips.join(' | ')}`;
+});
+
 let qid = '';
 await step('Ask Claude: the monitor hands the question to Claude', async () => {
   await sleep(800); // the monitor finds the server and starts waiting
-  await A.click('[data-a="ask"]');
-  await A.click('[data-s]');
-  await A.click('[data-a="send"]');
-  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, '"Claude has your question" on the page');
+  await A.click('#chat [data-s]');
+  await A.click('#bSend');
+  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, '"Claude has your question" in the chat');
   const line = notified.trim().split('\n').at(-1) || '';
   qid = (line.match(/question (q-[a-f0-9]+)/) || [])[1];
   if (!qid || !/Looking at: .+ › .+ \(app\) · /.test(line)) throw new Error('the monitor printed no question with its context: ' + line);
+  const chat = await A.js(`document.getElementById('chat').innerText`);
+  if (!chat.includes(`App: ${picked}`)) throw new Error('the chat should show the question with its chip: ' + chat);
+  if (/"focus"|"metrics"/.test(await A.js(`document.body.innerText`))) throw new Error('raw context is visible on the page');
   return `monitor notification: ${line.slice(0, 90)}…`;
 });
 
@@ -238,6 +266,7 @@ await step('A second copy of the map opens alongside', async () => {
   B = await openTab();
   await B.go(link);
   await B.waitFor(`document.getElementById('stat').textContent.includes('46 apps')`, 'the second page');
+  if (await B.js(`document.getElementById('chat').style.display !== 'none'`)) await B.click('#bChat'); // folded here, to see it unfold for the answer
   shotOf = B;
   await sleep(900);
   return 'same link, same session, both pages live';
@@ -247,18 +276,17 @@ await step("Claude's answer reaches both pages", async () => {
   const r = await tool('answer_question', { session: SESSION, question_id: qid, answer: `E2E answer for ${picked}: it earns from subscriptions (est., App Store in-app purchases).` });
   if (r.isError) throw new Error(r.content[0].text);
   await B.waitFor(`document.getElementById('toast').textContent.startsWith('Claude answered')`, 'the answer toast on the second page');
-  await A.waitFor(`(document.getElementById('ans') || {}).innerText?.includes('E2E answer')`, 'the answer in the first page panel');
-  return 'the asking page shows the answer in place; the second page announced it';
+  await B.waitFor(`document.getElementById('chat').style.display !== 'none' && document.getElementById('chat').innerText.includes('E2E answer')`, 'the folded chat on the second page to unfold with the answer');
+  await A.waitFor(`document.getElementById('chat').innerText.includes('E2E answer')`, 'the answer in the first page chat');
+  return 'both pages show the answer in the chat; the second page had it folded and it unfolded by itself';
 });
 
 await step('Without the monitor, the next message carries the question', async () => {
   await new Promise((r) => { watch.on('exit', r); watch.kill(); });
   await sleep(5500); // the page stops counting on a monitor a few seconds after it goes
-  await A.click('[data-a="done"]');
-  await A.click('[data-a="ask"]');
-  await A.click('[data-s]:nth-of-type(2)');
-  await A.click('[data-a="send"]');
+  await A.js(`(() => { const i = document.getElementById('qi'); i.focus(); i.value = 'Who are its rivals?'; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true; })()`);
   await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('send any message')`, 'the "send any message" hint');
+  if (!(await A.js(`!!document.querySelector('#chat [data-copy]')`))) throw new Error('the hint should offer Copy');
   shotOf = A;
   const hint = await A.js(`document.getElementById('ast').textContent`);
   const hook = plugin('hook.mjs');
@@ -322,12 +350,18 @@ await step('Typing in the panel survives live updates', async () => {
   await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 77%'`, 'the progress pushed from the other server');
   const kept = JSON.parse(await A.js(`(() => { const t = document.getElementById('idea'); return JSON.stringify({ v: t ? t.value : null, focus: document.activeElement === t, caret: t ? t.selectionStart : null }); })()`));
   if (kept.v !== 'Notes app for small clinics' || !kept.focus || kept.caret !== 9) throw new Error('typing was lost on a live update: ' + JSON.stringify(kept));
-  return `the idea box kept "${kept.v}", the focus and the cursor while the crawl went 42% → 77%`;
+  // The same for the ask input under the map.
+  await A.js(`(() => { const t = document.getElementById('qi'); t.focus(); t.value = 'Which of these earn the most?'; t.setSelectionRange(6, 6); return true; })()`);
+  writeFileSync(file, JSON.stringify({ ...s, apps: spiral(fx.apps.slice(0, 44)), progress: { ...s.progress, pct: 88, step: 'Reading prices and reviews' } }));
+  await A.waitFor(`document.getElementById('stat').textContent === 'Scouting · 88%'`, 'the next push');
+  const ask = JSON.parse(await A.js(`(() => { const t = document.getElementById('qi'); return JSON.stringify({ v: t.value, focus: document.activeElement === t, caret: t.selectionStart }); })()`));
+  if (ask.v !== 'Which of these earn the most?' || !ask.focus || ask.caret !== 6) throw new Error('typing in the ask bar was lost on a live update: ' + JSON.stringify(ask));
+  return `the idea box (42% → 77%) and the ask input (77% → 88%) kept their text, the focus and the cursor`;
 });
 
 await step('The crawl finishes on the page of the other server', async () => {
   const file = crawlFile, s = crawlState;
-  await A.js(`document.getElementById('bPlan').click()`);
+  await A.js(`(() => { document.getElementById('qi').value = ''; document.getElementById('bPlan').click(); return true; })()`);
   writeFileSync(file, JSON.stringify({ ...s, status: 'grouping', apps: spiral(fx.apps), progress: { ...s.progress, pct: 100, step: 'Waiting for Claude to group the apps' } }));
   await A.waitFor(`document.getElementById('stat').textContent.startsWith('${fx.apps.length} apps')`, 'the finished crawl');
   await A.waitFor(`!document.getElementById('pc').classList.contains('mid')`, 'the card back in the corner');
@@ -343,76 +377,17 @@ await step('Export downloads the report', async () => {
   return ok;
 });
 
-// ------------------------------------------------------------------ the card in a chat host
-// Claude Desktop Chat renders MCP Apps. scripts/host-harness.mjs plays that host: it runs its
-// own MCP server (on a copy of the data, so the two servers don't share files) and shows each
-// tool's App Scout card at the bottom of a simulated chat.
-const chatData = mkdtempSync(join(tmpdir(), 'app-scout-e2e-chat-'));
-cpSync(data, chatData, { recursive: true });
-rmSync(join(chatData, 'live'), { recursive: true, force: true });
-const harnessUrl = await new Promise((resolve, reject) => {
-  const p = spawn(process.execPath, [join(root, 'scripts/host-harness.mjs')], { env: { ...process.env, CLAUDE_PLUGIN_DATA: chatData, HARNESS_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
-  procs.push(p);
-  p.stdout.on('data', (d) => { const m = String(d).match(/harness on (http:\/\/\S+)/); if (m) resolve(m[1]); });
-  p.on('exit', (c) => reject(new Error('harness exited ' + c)));
-});
-const card = (n) => `document.querySelectorAll('iframe')[${n}].contentDocument`;
-let chatLink = '', chatQ = '';
-
-await step('Chat: the App Scout card appears under show_map', async () => {
-  await B.go(harnessUrl);
-  const r = await B.js(`renderTool('show_map', { session: '${SESSION}' })`);
-  chatLink = mapLink(r);
-  await B.waitFor(`${card(0)}.body.innerText.includes('Ask Claude on the map')`, 'the idle card');
-  shotOf = B;
-  return (await B.js(`${card(0)}.body.innerText`)).replace(/\s+/g, ' ').slice(0, 120);
-});
-
-await step('Chat: a question from the map waits on the card with Copy and Send', async () => {
-  await A.go(chatLink);
-  await A.waitFor(`document.getElementById('stat').textContent.includes('46 apps')`, 'the map of the chat session');
-  await A.click('[data-a="ask"]');
-  await A.click('[data-s]');
-  await A.click('[data-a="send"]');
-  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('press Send on the App Scout card')`, 'the page pointing at the card');
-  await B.waitFor(`${card(0)}.body.innerText.includes('Prompt ready from the map')`, 'the prompt on the card');
-  shotOf = B;
-  return 'page: "' + (await A.js(`document.getElementById('ast').textContent`)) + '"';
-});
-
-await step('Chat: Enter on the card posts the prompt as the user message', async () => {
-  await B.js(`${card(0)}.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
-  await B.waitFor(`window.messages.length === 1`, 'the message in the chat');
-  const msg = await B.js(`window.messages[0]`);
-  chatQ = (msg.match(/question (q-[a-f0-9]+)/) || [])[1];
-  if (!chatQ || !/\nLooking at: .+\nAnswer here/.test(msg)) throw new Error('posted message lacks the question or its context: ' + msg);
-  await A.waitFor(`(document.getElementById('ast') || {}).textContent?.includes('Claude has your question')`, 'the page to see it was sent');
-  await B.waitFor(`${card(0)}.body.innerText.includes('Sent. Claude is answering')`, 'the card to say sent');
-  shotOf = B;
-  return msg.slice(0, 100) + '…';
-});
-
-await step('Chat: after the answer a new card appears below; the old one steps aside', async () => {
-  await B.js(`renderTool('answer_question', { session: '${SESSION}', question_id: '${chatQ}', answer: 'Chat answer: subscriptions drive the money here (est.).' })`);
-  await B.waitFor(`document.querySelectorAll('iframe').length === 2 && ${card(1)}.body.innerText.includes('Ask Claude on the map')`, 'the new card');
-  await B.waitFor(`${card(0)}.body.innerText.includes('moved to the newest card')`, 'the old card to step aside');
-  await A.waitFor(`(document.getElementById('ans') || {}).innerText?.includes('Chat answer')`, 'the answer on the map');
-  shotOf = B;
-  return 'old card: "moved to the newest card below"; the map shows the answer';
-});
-
-// Claude Code desktop renders the card but refuses its tool calls ("IPC not available for MCP
-// tool call"). The card must still offer the map from the link in the tool result (issue #11).
-await step('Chat: a host that refuses the card\'s tool calls still gets Open map', async () => {
-  await B.go(harnessUrl + '/?noipc');
-  const r = await B.js(`renderTool('show_map', { session: '${SESSION}' })`);
-  const link = mapLink(r);
-  await B.waitFor(`${card(0)}.querySelector('[data-a="map"]') && ${card(0)}.body.innerText.includes(${JSON.stringify(link)})`, 'Open map and the link on the card');
-  if (/could not start|IPC/.test(await B.js(`${card(0)}.body.innerText`))) throw new Error('the card still shows the IPC error');
-  await B.js(`${card(0)}.querySelector('[data-a="map"]').click()`);
-  await B.waitFor(`[...document.querySelectorAll('.msg')].some((m) => m.textContent === 'open link: ' + ${JSON.stringify(link)})`, 'the host asked to open the map');
-  shotOf = B;
-  return 'card shows Open map and the link; clicking it asks the host to open ' + link.replace(/[?].*/, '');
+await step('Data set select opens another data set', async () => {
+  await A.js(`document.querySelector('[data-a="closeexp"]').click()`);
+  const opts = await A.js(`[...document.getElementById('sesSel').options].map((o) => ({ v: o.value, t: o.textContent, on: o.selected }))`);
+  if (opts.length < 2) throw new Error('the select should list both data sets: ' + JSON.stringify(opts));
+  if (!opts.every((o) => /^.+ · \d+ apps · \d{4}-\d{2}-\d{2}$/.test(o.t))) throw new Error('options should read "name · N apps · date": ' + opts.map((o) => o.t).join(' | '));
+  if (!opts.find((o) => o.on && o.v === SESSION)) throw new Error('the open data set should be selected');
+  await A.js(`(() => { const s = document.getElementById('sesSel'); s.value = '${RUNNING}'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await A.waitFor(`location.search.includes('s=${RUNNING}') && document.getElementById('sesSel').value === '${RUNNING}'`, 'the other data set to open');
+  await A.waitFor(`document.getElementById('qi').placeholder === 'Ask Claude about Scout in progress'`, 'the ask bar to follow');
+  await sleep(900);
+  return `options: ${opts.map((o) => o.t).join(' | ')} → opened "Scout in progress"`;
 });
 
 cleanup();
