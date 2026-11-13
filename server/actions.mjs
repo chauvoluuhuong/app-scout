@@ -48,8 +48,7 @@ export function postPlan(plan) {
 }
 
 // Questions asked on a map page wait here until Claude's side collects them: the plugin's
-// monitor or a one-shot watcher (server/watch.mjs, which wake Claude), the in-chat dock widget
-// (ui/dock.html, which posts it as the user's message when they press Send), or the prompt hook
+// monitor or a one-shot watcher (server/watch.mjs, which wake Claude), or the prompt hook
 // (server/hook.mjs, which attaches it to the user's next message). Whoever comes first takes
 // it, so Claude gets each question once.
 const inbox = []; // { session, id }
@@ -75,49 +74,6 @@ function markSent({ s, q }) {
 /** Every waiting question, as lines for Claude, taken off the queue. */
 export function takeQuestions() {
   return inbox.splice(0).map(pending).filter(Boolean).map(markSent);
-}
-
-/** The oldest waiting question, left on the queue (the dock shows it until the user sends it). */
-export function peekQuestion() {
-  while (inbox.length) {
-    const p = pending(inbox[0]);
-    if (p) return { id: p.q.id, session: p.s.id, question: p.q.text, text: questionText(p.s, p.q) };
-    inbox.shift(); // answered or gone meanwhile
-  }
-  return null;
-}
-
-/** Take one question by id, once the dock has posted it. Null if someone else took it first. */
-export function takeQuestion(id) {
-  const i = inbox.findIndex((x) => x.id === id);
-  if (i < 0) return null;
-  const p = pending(inbox.splice(i, 1)[0]);
-  return p ? markSent(p) : null;
-}
-
-// The dock: an MCP Apps widget in Claude Desktop Chat (and other hosts that render them). A new
-// one appears with each show_map, scout, plan_research and answer_question result, and the older
-// ones stay in the chat history, still running. Only the newest acts; the rest say it moved.
-let dockNewest = null, dockSeen = 0, dockSeq = 0, current = null;
-export const dockActive = () => Date.now() - dockSeen < 6000;
-/** The session the chat last looked at, for the dock's map link. */
-export const setCurrent = (id) => { current = id; };
-
-export function dock(op, args = {}) {
-  if (op === 'hello') {
-    dockNewest = `dock-${++dockSeq}-${randomBytes(2).toString('hex')}`;
-    return { id: dockNewest };
-  }
-  if (op === 'poll') {
-    const active = args.id === dockNewest;
-    if (active) dockSeen = Date.now();
-    const sid = current || listSessions()[0]?.id || null;
-    let session = null;
-    if (sid) { try { const s = getSession(sid); session = { id: s.id, name: s.name, status: s.status }; } catch {} }
-    return { active, prompt: active ? peekQuestion() : null, session, map: sid ? webInfo(sid)?.url || null : null };
-  }
-  if (op === 'sent') return { taken: !!takeQuestion(args.qid) };
-  throw new Error(`Unknown dock op: ${op}`);
 }
 
 /** For Claude, and readable when it shows as the user's message: the question, what the user
@@ -209,7 +165,7 @@ export async function handleAction(action, args = {}) {
       save(s, { now: true });
       inbox.push({ session: s.id, id: q.id });
       publish({ session: s.id, kind: 'question', fresh: true });
-      return { question: q, listening: listening(), dock: dockActive() };
+      return { question: q, listening: listening() };
     }
     case 'export': {
       const s = getSession(args.session);

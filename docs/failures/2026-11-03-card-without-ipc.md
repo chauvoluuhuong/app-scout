@@ -1,5 +1,6 @@
 # The card gave up when the host refused its tool calls
 Issue: [#11](https://github.com/chauvoluuhuong/app-scout/issues/11) · affected app-scout--v0.3.0, v0.3.1 · fixed on `fix/card-without-ipc`
+The card was removed in 0.4.0.
 
 ## What broke
 In Claude Code desktop the App Scout card showed only "App Scout card could not start: IPC not available for MCP tool call" and no Open map button.

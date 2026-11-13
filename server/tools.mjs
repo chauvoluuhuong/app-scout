@@ -1,13 +1,11 @@
 // MCP tools. Each returns a short text summary for Claude. The map itself is a web page served
 // by this process (server/web/server.mjs): tools that show something end with its link, and
-// Claude opens it in its in-app browser or hands it to the user. In hosts that render MCP Apps
-// (Claude Desktop Chat), the same tools also show the dock (ui/dock.html), a small card that
-// posts map questions into the chat when the user presses Send; its own calls use `dock`.
-import { readFileSync, writeFileSync } from 'node:fs';
+// Claude opens it in its in-app browser or hands it to the user.
+import { writeFileSync } from 'node:fs';
 import { dirname, join as pjoin } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { dock, normalizePlan, postPlan, setCurrent, startScout } from './actions.mjs';
+import { normalizePlan, postPlan, startScout } from './actions.mjs';
 import { applyGrouping, ALL_STORES, isRunning, STORE_LABEL } from './pipeline.mjs';
 import { getSession, listSessions, save, DATA_DIR, EXPORTS } from './sessions.mjs';
 import { summary } from './viewmodel.mjs';
@@ -16,10 +14,6 @@ import { listening, sendTo, webInfo } from './web/server.mjs';
 import { waitFor, publish } from './bus.mjs';
 
 const SESSION = { type: 'string', description: 'Session id, as returned by scout or list_sessions.' };
-export const DOCK_URI = 'ui://app-scout/dock.html';
-export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
-const DOCK_FILE = pjoin(dirname(fileURLToPath(import.meta.url)), '..', 'ui', 'dock.html');
-const withDock = { ui: { resourceUri: DOCK_URI } };
 const WATCH = pjoin(dirname(fileURLToPath(import.meta.url)), 'watch.mjs');
 
 const TOOLS = [
@@ -40,7 +34,6 @@ const TOOLS = [
       },
     },
     annotations: { readOnlyHint: false, openWorldHint: true },
-    _meta: withDock,
   },
   {
     name: 'scout_status',
@@ -110,7 +103,6 @@ const TOOLS = [
       },
     },
     annotations: { readOnlyHint: true },
-    _meta: withDock,
   },
   {
     name: 'show_map',
@@ -118,7 +110,6 @@ const TOOLS = [
     description: 'Reopen a saved research session: returns its summary and its map link, which opens where the user left off.',
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION } },
     annotations: { readOnlyHint: true },
-    _meta: withDock,
   },
   {
     name: 'list_sessions',
@@ -140,7 +131,6 @@ const TOOLS = [
     description: 'Record your answer to a question asked from the map, so the map (and the browser page) shows it next to the question.',
     inputSchema: { type: 'object', required: ['session', 'question_id', 'answer'], properties: { session: SESSION, question_id: { type: 'string' }, answer: { type: 'string' } } },
     annotations: { readOnlyHint: false },
-    _meta: withDock,
   },
   {
     name: 'export_session',
@@ -148,14 +138,6 @@ const TOOLS = [
     description: 'Write a session to a file: json (everything), csv (the apps table) or md (a readable report). Returns the file path.',
     inputSchema: { type: 'object', required: ['session'], properties: { session: SESSION, format: { type: 'string', enum: ['json', 'csv', 'md'], default: 'md' }, parts: { type: 'array', items: { type: 'string', enum: PARTS } } } },
     annotations: { readOnlyHint: false },
-  },
-  {
-    name: 'dock',
-    title: 'App Scout card',
-    description: 'Used by the App Scout card shown in the chat, for its own buttons. Not for the model.',
-    inputSchema: { type: 'object', required: ['op'], properties: { op: { type: 'string', enum: ['hello', 'poll', 'sent'] }, id: { type: 'string' }, qid: { type: 'string' } } },
-    annotations: { readOnlyHint: false },
-    _meta: { ui: { resourceUri: DOCK_URI, visibility: ['app'] } },
   },
 ];
 
@@ -180,7 +162,6 @@ function appLine(a) {
 const HANDLERS = {
   async scout(a) {
     const s = startScout({ topic: a.topic, apps: a.apps, stores: a.stores, market: a.market });
-    setCurrent(s.id);
     return text(`Started scout ${s.id} for ${a.topic ? `"${a.topic}"` : 'the overall charts'}: up to ${s.target} apps from each of ${s.stores.map((x) => STORE_LABEL[x]).join(', ')}. The map fills in live; pages already open switch to it.\nNext: call scout_status with this session id.` + mapLine(webInfo(s.id)?.url) + watchLine());
   },
   async scout_status(a) {
@@ -210,7 +191,6 @@ const HANDLERS = {
   },
   async show_map(a) {
     const s = getSession(a.session);
-    setCurrent(s.id);
     return text(summary(s, webInfo(s.id)) + watchLine());
   },
   async list_sessions() {
@@ -232,11 +212,7 @@ const HANDLERS = {
     save(s, { now: true });
     sendTo(s.id, { type: 'answer', question: q });
     publish({ session: s.id, kind: 'question' });
-    setCurrent(s.id);
     return text(`Saved the answer to ${q.id}; the map shows it.` + watchLine());
-  },
-  async dock(a) {
-    return text('ok', false, dock(a.op, a));
   },
   async export_session(a) {
     const s = getSession(a.session);
@@ -258,11 +234,9 @@ export async function callTool(name, args) {
   }
 }
 
-export function listResources() {
-  return [{ uri: DOCK_URI, name: 'App Scout card', description: 'Map link and Send-to-Claude for questions asked on the map', mimeType: RESOURCE_MIME_TYPE }];
-}
+// App Scout offers no resources (the map is a web page, not an MCP Apps view).
+export const listResources = () => [];
 
 export function readResource(uri) {
-  if (uri !== DOCK_URI) throw new Error(`Unknown resource ${uri}`);
-  return { contents: [{ uri: DOCK_URI, mimeType: RESOURCE_MIME_TYPE, text: readFileSync(DOCK_FILE, 'utf8'), _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: false } } }] };
+  throw new Error(`Unknown resource ${uri}`);
 }
