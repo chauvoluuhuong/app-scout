@@ -45,8 +45,6 @@ button.mb:hover{border-color:var(--acc)}
 p.i{color:var(--tx2);margin:0 0 8px}
 .chip{border-radius:14px;margin:0 4px 4px 0}
 input,textarea{width:100%;font:inherit;font-size:12px;background:#0B1612;color:var(--tx);border:0.5px solid var(--edge);border-radius:6px;padding:6px 8px}
-pre{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;background:#0B1612;color:var(--mut);border-radius:6px;padding:6px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:140px;overflow:auto;margin:6px 0 0}
-summary{color:var(--ok);cursor:pointer;font-size:11px}
 .k{color:var(--mut);font-size:11px;margin:10px 0 4px}
 .sr{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:0.5px solid var(--line)}
 label.ck{display:flex;align-items:center;gap:8px;padding:4px 0;color:var(--tx2);cursor:pointer}
@@ -98,13 +96,38 @@ a{color:var(--ok)}
 .app.narrow .lg:not(.mini){width:200px}
 .app.narrow canvas{height:420px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Data set select in the toolbar */
+.dsel{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto}
+.dsel label{font-size:11px;color:var(--mut);white-space:nowrap}
+.dsel select{height:30px;max-width:280px;min-width:0;border:0.5px solid var(--edge);border-radius:8px;background:#0B1612;color:var(--tx);font:inherit;font-size:12px;padding:0 6px;text-overflow:ellipsis}
+.app.compact .dsel label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.app.narrow .dsel select{max-width:160px}
+/* Ask bar and chat under the map */
+.abar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-top:0.5px solid var(--line);background:var(--bar)}
+.abar input{flex:1;min-width:70px;height:30px}
+.cnt{background:var(--ctl2);border-radius:8px;padding:0 6px;font-size:11px;color:var(--mut)}
+.cchip{display:inline-flex;align-items:center;gap:2px;max-width:40%;height:26px;padding:0 2px 0 10px;border:0.5px solid var(--acc);background:var(--accbg);color:var(--acc2);border-radius:13px;font-size:11.5px;flex:0 1 auto;min-width:0}
+.cchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cchip button{height:22px;width:22px;padding:0;justify-content:center;border:none;background:transparent;color:var(--acc2);border-radius:11px;flex:none}
+.cchip button:hover{background:var(--ctl)}
+.chat{max-height:240px;overflow:auto;padding:10px 10px 4px;border-top:0.5px solid var(--line);background:var(--bg)}
+.msg{margin:0 0 10px}
+.mq{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;color:var(--tx)}
+.mtag{font-size:10.5px;color:var(--acc2);border:0.5px solid var(--edge);border-radius:10px;padding:0 6px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ma{margin:4px 0 0;padding:6px 8px;background:var(--ctl);border-radius:6px;color:var(--tx2);white-space:pre-wrap;overflow-wrap:anywhere}
+.ma b{color:var(--acc2);font-weight:600}
+.mst{margin:4px 0 6px;color:var(--mut);font-size:11.5px}
+.mst.ok{color:var(--ok)}
+.mst button{margin-left:6px;vertical-align:middle}
+.app.narrow .cchip{max-width:38%}
+.app.narrow #bChat .lbl{display:none}
 @media (prefers-reduced-motion:reduce){.pc,.pg div{transition:none}}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <div class="tbar">
-    <button class="gh" id="bSes" aria-label="Switch session"><svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span id="sesName">App Scout</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="dsel"><label for="sesSel">Data set</label><select id="sesSel" disabled><option value="">No data sets yet</option></select></span>
     <span class="stat" id="stat" role="button" tabindex="0" title="Show scout details"></span>
     <span style="flex:1"></span>
     <div class="grp"><label class="sr-only" for="nApps">Most apps per platform</label><select id="nApps"><option value="50">50 / platform</option><option value="100" selected>100 / platform</option><option value="200">200 / platform</option><option value="300">300 / platform</option><option value="500">500 / platform</option></select><button id="bScout"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Scout</button></div>
@@ -124,6 +147,14 @@ a{color:var(--ok)}
     <div class="card tour" id="tour" style="display:none" role="dialog" aria-label="How to read the map"></div>
     <div class="toast" id="toast" role="status"></div>
     <div class="modal" id="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="mtitle"></div>
+  </div>
+  <div class="chat" id="chat" style="display:none" aria-live="polite" aria-label="Questions and Claude's answers"></div>
+  <div class="abar" id="abar" style="display:none">
+    <button id="bChat" aria-controls="chat" aria-expanded="false" title="Show or hide the questions and answers"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span class="lbl">Chat</span><span class="cnt" id="chatN">0</span></button>
+    <span class="cchip" id="ctx" style="display:none"><span id="ctxName"></span><button id="ctxX" aria-label="Clear the selection: ask about the whole data set" title="Ask about the whole data set">×</button></span>
+    <label class="sr-only" for="qi">Your question for Claude</label>
+    <input id="qi" autocomplete="off" placeholder="Ask Claude">
+    <button class="pr" id="bSend">Send</button>
   </div>
   <div class="lbar" id="lbar" role="toolbar" aria-label="Lenses" style="display:none"></div>
 </div>
@@ -158,10 +189,10 @@ document.body.classList.add('page');
 // ------------------------------------------------------------------ state
 let D = null;           // current snapshot from the server
 let plan = null;        // plan payload, when the view was opened by plan_research
-let mode = 'focus';     // right panel: focus | plan | sessions | export | idea
-let sel = null, focus = null, lastKey = '', ask = false, q = '', askState = null;
+let mode = 'focus';     // right panel: focus | plan | export | idea
+let sel = null, focus = null, lastKey = '', askState = null, pasteText = '';
 let lens = null, hl = null, lgOpen = false, tourStep = -1, tourT = null, mState = null;
-let pcShow = true, pcHideT = null, wasRunning = false, sessionsList = null, exSel = new Set(['apps', 'platforms', 'reviews', 'segments', 'openings', 'questions']), exFmt = 'md';
+let pcShow = true, pcHideT = null, wasRunning = false, dataSets = null, exSel = new Set(['apps', 'platforms', 'reviews', 'segments', 'openings', 'questions']), exFmt = 'md';
 let ws = null, wsOk = false, fallbackT = null, lastAnswer = null, userMoved = false;
 const pos = new Map();  // app id -> { x, y } currently drawn (for smooth moves)
 const cv = $('cv'), ctx = cv.getContext('2d');
@@ -197,9 +228,9 @@ async function refresh() { if (!D) return; if (refreshing) { again = true; retur
 async function onWs(m) {
   if (m.type === 'result') { const w = wsWait.get(m.id); if (w) { wsWait.delete(m.id); m.error ? w.reject(new Error(m.error)) : w.resolve(m.result); } return; }
   if (m.type === 'changed') { lastPush = Date.now(); return refresh(); }
-  if (m.type === 'answer') { lastAnswer = m.question; toast('Claude answered: ' + m.question.text.slice(0, 40)); refresh(); return; }
+  if (m.type === 'answer') { lastAnswer = m.question; setChatOpen(true); toast('Claude answered: ' + m.question.text.slice(0, 40)); refresh(); return; }
   // A scout started anywhere (by Claude, or on another open page): follow it.
-  if (m.type === 'session' && (!D || D.session.id !== m.id)) { try { mode = 'focus'; setData(await act('snapshot', { session: m.id })); homeCamera(true); toast('Showing the new scout: ' + m.name); } catch (e) {} return; }
+  if (m.type === 'session' && (!D || D.session.id !== m.id)) { loadSets(); try { mode = 'focus'; setData(await act('snapshot', { session: m.id })); homeCamera(true); toast('Showing the new scout: ' + m.name); } catch (e) {} return; }
   if (m.type === 'plan') { try { setData(await act('plan', { id: m.id })); toast('Claude sent a research plan'); } catch (e) {} }
 }
 // While a crawl runs and no push came for 5 seconds, ask anyway, so the page never sits on a
@@ -209,10 +240,6 @@ setInterval(() => { if (running() && wsOk && Date.now() - lastPush > 5000) { las
 // While the socket is down, refresh while (and only while) a crawl runs.
 function startFallback() { if (fallbackT || !running()) return; fallbackT = setInterval(() => { if (!running()) return stopFallback(); refresh(); }, 2500); }
 function stopFallback() { clearInterval(fallbackT); fallbackT = null; }
-
-function askText(qq) {
-  return `[App Scout · session ${D.session.id} · question ${qq.id}]\n${qq.text}\n\nMap context: ${JSON.stringify(qq.context)}\n\nAnswer here, then call answer_question (session ${D.session.id}, question_id ${qq.id}) so the map shows the answer.`;
-}
 
 // ------------------------------------------------------------------ data in
 function setData(snap) {
@@ -225,7 +252,7 @@ function setData(snap) {
   const phaseChanged = !first && prev && (prev.session.status !== D.session.status || prev.session.groupedBy !== D.session.groupedBy);
   if (first) { userMoved = false; pos.clear(); sel = null; homeCamera(); lens = (D.viewState && D.viewState.lens) || null; pcShow = running(); mode = mode === 'plan' && plan ? 'plan' : 'focus'; history.replaceState(null, '', mapUrl(D.session.id).slice(location.origin.length)); }
   if (sel && sel.id) sel = findById(sel.kind, sel.id);
-  $('sesName').textContent = D.session.name;
+  if (first) loadSets(); else fillSets();
   $('nApps').value = String([50, 100, 200, 300, 500].includes(D.session.target) ? D.session.target : 100);
   moveDots(first);
   // Keep the whole map in view while it grows and when it regroups, until the user moves it.
@@ -235,6 +262,7 @@ function setData(snap) {
   if (wasRunning && !nowRunning) {
     clearTimeout(pcHideT);
     pcHideT = setTimeout(() => { pcShow = false; progress(); }, 1600);
+    loadSets();
     toast(D.session.status === 'failed' ? 'Scout failed: ' + (D.session.error || '') : `Scout finished · ${D.apps.length} apps · saved`);
   }
   wasRunning = nowRunning;
@@ -384,7 +412,7 @@ function draw() {
   if (a3 > 0) for (const a of [...apps()].sort((x, y) => (y.u || 0) - (x.u || 0))) { if (k < 6 && a.t < 2 && a.rb !== 2) continue; const p = P(a), X = sx(p.x), Y = sy(p.y); if (X < 0 || X > W || Y < 0 || Y > H) continue; label(a.n.length > 26 ? a.n.slice(0, 25) + '…' : a.n, X, Y + 15, 11.5, '#C9E9DD', a3 * (lf && !lf(a) ? 0.2 : 1)); }
   if (tourStep >= 0 && tourT) { const p = P(tourT); ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 18, 0, 7); ctx.strokeStyle = '#EF9F27'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
   const key = mode + '|' + focus.kind + '|' + (focus.id || '') + '|' + (D.session.status) + '|' + D.apps.length;
-  if (key !== lastKey) { if (!key.startsWith(lastKey.split('|').slice(0, 3).join('|'))) { ask = false; askState = null; q = ''; } lastKey = key; panel(); saveView(); }
+  if (key !== lastKey) { lastKey = key; panel(); saveView(); }
 }
 function fly(tx, ty, tk, off) {
   const k0 = k, x0 = cx, y0 = cy, t0 = performance.now(); cancelAnimationFrame(anim);
@@ -442,7 +470,6 @@ function saveView() { if (!D) return; clearTimeout(viewT); viewT = setTimeout(()
 
 // ------------------------------------------------------------------ right panel
 let MREF = [];
-function sugg(f) { return f.kind === 'app' ? ['Why do users complain?', 'How does it make money?', 'Who are its rivals?'] : f.kind === 'opening' ? ['Is this worth building?', 'What would v1 need?', 'Who would pay?'] : f.kind === 'category' ? ['Where is the money?', 'What is rising?', 'Regroup the segments'] : ['Why is this growing?', 'Who pays here?', 'Split this segment']; }
 function answersFor(f) { return (D.questions || []).filter((x) => x.context && x.context.focus && x.context.focus.name === f.name && x.answer).slice(-1); }
 function vFocus() {
   if (!D) return '<p class="t">App Scout</p><p class="i">Start a scout, or ask Claude to plan research from your idea.</p>';
@@ -454,9 +481,7 @@ function vFocus() {
   if (i.ins) h += '<p class="i">' + esc(i.ins) + '</p>';
   if (f.kind === 'app' && webUrl(f.o.url)) h += '<p class="i"><a href="' + esc(f.o.url) + '" data-link="' + esc(f.o.url) + '">Open the store listing</a></p>';
   for (const a of answersFor(f)) h += '<div class="qa"><b>Q:</b> ' + esc(a.text) + '<br><b>Claude:</b> ' + esc(a.answer.slice(0, 600)) + (a.answer.length > 600 ? '…' : '') + '</div>';
-  if (askState) h += askStatus();
-  else if (ask) h += '<div>' + sugg(f).map((t) => '<button class="chip sm' + (q === t ? ' on' : '') + '" data-s="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div><label class="sr-only" for="qi">Your question</label><input id="qi" placeholder="Your question" value="' + esc(q) + '"><p class="err" id="qe"></p><details><summary>What Claude receives</summary><pre id="cx">' + esc(JSON.stringify(contextOf(f), null, 1)) + '</pre></details><div class="acts"><button data-a="cancel">Cancel</button><button class="pr" data-a="send">Send to Claude</button></div>';
-  else h += '<div class="acts">' + (sel ? '<button data-a="clear">Clear</button>' : '') + '<button class="pr" data-a="ask">Ask Claude</button></div>';
+  if (sel) h += '<div class="acts"><button data-a="clear">Clear</button></div>';
   return h;
 }
 function vPlan() {
@@ -467,17 +492,11 @@ function vPlan() {
     '<p class="i" style="margin-top:8px">' + segs.length + ' segments · ' + segs.reduce((t, x) => t + x.phrases.length, 0) + ' searches · ' + plan.apps + ' apps</p><p class="err" id="pe"></p><div class="acts"><button data-a="closeplan">Cancel</button><button class="pr" data-a="startplan">Start focused scout</button></div>';
 }
 function vIdea() {
-  return '<p class="t">Plan from idea</p><p class="p">Claude turns your idea into what to scout</p><label for="idea" class="k" style="display:block">Describe your idea</label><textarea id="idea" rows="4" placeholder="A meeting notes app for Vietnamese small teams"></textarea><p class="err" id="ie"></p><div class="acts"><button data-a="closeplan">Cancel</button><button class="pr" data-a="mkplan">Make plan</button></div>';
+  return '<p class="t">Plan from idea</p><p class="p">Claude turns your idea into what to scout</p><label for="idea" class="k" style="display:block">Describe your idea</label><textarea id="idea" rows="4" placeholder="A meeting notes app for Vietnamese small teams"></textarea><p class="err" id="ie"></p>' + (pasteText ? '<p class="i">No data set is open, so the map can’t hand this to Claude. Copy it and paste it into the chat with Claude.</p><div class="acts"><button data-a="copyidea">Copy</button></div>' : '') + '<div class="acts"><button data-a="closeplan">Cancel</button><button class="pr" data-a="mkplan">Make plan</button></div>';
 }
-function vSessions() {
-  if (!sessionsList) return '<p class="t">Your sessions</p><p class="i">Loading…</p>';
-  if (!sessionsList.length) return '<p class="t">Your sessions</p><p class="i">No saved sessions yet.</p><div class="acts"><button data-a="closeses">Close</button></div>';
-  return '<p class="t">Your sessions</p><p class="p">Saved after every step</p>' + sessionsList.slice(0, 12).map((x) => '<div class="sr"><div style="flex:1;min-width:0">' + esc(x.name) + '<div style="color:var(--mut);font-size:11px">' + (x.focused ? 'Focused · ' : '') + x.apps + ' apps · ' + esc(x.status) + ' · ' + esc(x.updated.slice(0, 10)) + '</div></div><button class="ic sm" data-x="' + esc(x.id) + '" aria-label="Export ' + esc(x.name) + '" title="Export"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></button><button class="sm" data-r="' + esc(x.id) + '">Continue</button></div>').join('') + '<div class="acts"><button data-a="closeses">Close</button></div>';
-}
-let exFor = null;
 function vExport() {
   const EXP = [['apps', 'Apps and their store data'], ['platforms', 'Per-platform counts'], ['reviews', 'Review complaints'], ['segments', 'Segments and keywords'], ['openings', 'Openings with evidence'], ['questions', 'Your questions and Claude’s answers']];
-  return '<p class="t">Export session</p><p class="p">' + esc(exFor ? exFor : D ? D.session.name : '') + '</p><p class="k">Include</p>' + EXP.map((e) => '<label class="ck"><input type="checkbox" data-e="' + e[0] + '"' + (exSel.has(e[0]) ? ' checked' : '') + '> ' + esc(e[1]) + '</label>').join('') +
+  return '<p class="t">Export session</p><p class="p">' + esc(D ? D.session.name : '') + '</p><p class="k">Include</p>' + EXP.map((e) => '<label class="ck"><input type="checkbox" data-e="' + e[0] + '"' + (exSel.has(e[0]) ? ' checked' : '') + '> ' + esc(e[1]) + '</label>').join('') +
     '<p class="k">Format</p><div>' + [['md', 'Markdown report'], ['csv', 'CSV (apps)'], ['json', 'JSON (everything)']].map((f) => '<button class="chip sm' + (exFmt === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>').join('') + '</div><p class="err" id="xe"></p><div class="acts"><button data-a="closeexp">Cancel</button><button class="pr" data-a="doexp">Export</button></div>';
 }
 // The panel is redrawn whenever the data changes (apps arriving, an answer). What the user is
@@ -487,13 +506,10 @@ function panel() {
   const pn = $('pn');
   const on = document.activeElement, keep = on && on.id && pn.contains(on) ? { id: on.id, a: on.selectionStart, b: on.selectionEnd } : null;
   const was = $('idea'); if (was) ideaText = was.value;
-  const wasOpen = pn.querySelector('details') ? pn.querySelector('details').open : null;
-  pn.innerHTML = mode === 'plan' ? vPlan() : mode === 'idea' ? vIdea() : mode === 'sessions' ? vSessions() : mode === 'export' ? vExport() : vFocus();
-  const qi = $('qi'); if (qi) qi.addEventListener('input', () => { q = qi.value; $('qe').textContent = ''; const c = $('cx'); if (c) c.textContent = JSON.stringify(contextOf(focus), null, 1); });
+  pn.innerHTML = mode === 'plan' ? vPlan() : mode === 'idea' ? vIdea() : mode === 'export' ? vExport() : vFocus();
   const idea = $('idea'); if (idea) { idea.value = ideaText; idea.addEventListener('input', () => { ideaText = idea.value; $('ie').textContent = ''; }); }
-  const dt = pn.querySelector('details'); if (dt && wasOpen != null) dt.open = wasOpen;
   if (keep) { const n = $(keep.id); if (n) { n.focus(); try { n.setSelectionRange(keep.a, keep.b); } catch (e) {} } }
-  progress(); legend(); banner(); status(); empty();
+  progress(); legend(); banner(); status(); empty(); askBar();
 }
 
 // ------------------------------------------------------------------ progress card, banner, status
@@ -659,62 +675,158 @@ $('lg').addEventListener('click', (e) => {
   legend(); draw();
 });
 async function askToGroup() {
-  const out = await sendToClaude(`[App Scout · session ${D.session.id}] The crawl finished with ${D.apps.length} apps. Please group them: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings the data supports.`, null);
-  if (out) { askState = out; ask = true; panel(); }
+  await sendToClaude(`[App Scout · session ${D.session.id}] The crawl finished with ${D.apps.length} apps. Please group them: call list_apps, then save_grouping with 4–8 segments, 2–4 keywords each, and openings the data supports.`, { request: 'group' });
 }
 $('pc').addEventListener('click', async (e) => { const b = e.target.closest('[data-a]'); if (!b) return; if (b.dataset.a === 'stop') { try { setData(await act('stop', { session: D.session.id })); } catch (err) { toast(err.message); } } else if (b.dataset.a === 'hidepc') { pcShow = false; progress(); empty(); } });
 
+// ------------------------------------------------------------------ ask bar and chat
 // The page can't post into the chat itself. A question goes to the server, which hands it to
 // a watcher that wakes Claude (the plugin's monitor, or one Claude runs in the background), or
-// else to the hook that attaches it to the user's next message. The panel follows it: sending, Claude has it, answered.
-async function sendToClaude(text, r) {
+// else to the hook that attaches it to the user's next message. The chat under the map follows
+// it: sending, Claude has it, answered. The chat is built from the session's saved questions, so
+// every open copy of the map shows the same one. The bar itself is never rebuilt: what the user
+// types, the focus and the cursor stay through every live update (failure 2026-11-12).
+const KIND = { app: 'App', segment: 'Segment', keyword: 'Keyword', opening: 'Opening' };
+let chatOpen = true, chatT = null, chatSeen = '';
+try { const v = localStorage.getItem('appScout.chatOpen'); if (v === '0' || v === '1') chatOpen = v === '1'; } catch (e) {}
+function setChatOpen(v) { chatOpen = v; try { localStorage.setItem('appScout.chatOpen', v ? '1' : '0'); } catch (e) {} askBar(); }
+// What the question is about: the selection on the map, or else the whole data set.
+const askTarget = () => (D && sel && resolve(sel)) || { kind: 'category', name: D ? D.session.name : '' };
+function askBar() {
+  const bar = $('abar');
+  if (!D) { bar.style.display = 'none'; $('chat').style.display = 'none'; return; }
+  bar.style.display = '';
+  const t = askTarget();
+  $('ctx').style.display = t.kind === 'category' ? 'none' : '';
+  $('ctxName').textContent = (KIND[t.kind] || '') + ': ' + t.name;
+  $('ctx').title = 'Your question is about ' + t.name;
+  $('qi').placeholder = 'Ask Claude about ' + t.name;
+  $('chatN').textContent = String((D.questions || []).length);
+  $('bChat').setAttribute('aria-expanded', String(chatOpen));
+  $('bChat').classList.toggle('on', chatOpen);
+  chat();
+}
+function sugg(f) { return f.kind === 'app' ? ['Why do users complain?', 'How does it make money?', 'Who are its rivals?'] : f.kind === 'opening' ? ['Is this worth building?', 'What would v1 need?', 'Who would pay?'] : f.kind === 'category' ? ['Where is the money?', 'What is rising?', 'Regroup the segments'] : ['Why is this growing?', 'Who pays here?', 'Split this segment']; }
+function tagOf(x) {
+  const c = x.context || {}, f = c.focus || {};
+  if (c.request === 'group') return 'Grouping';
+  if (c.request === 'plan') return 'Plan from idea';
+  return f.type && f.type !== 'category' ? (KIND[f.type] || f.type) + ': ' + f.name : 'Whole data set';
+}
+function textOf(x) {
+  const c = x.context || {};
+  if (c.request === 'group') return 'Group the apps into segments, keywords and openings';
+  if (c.request === 'plan') return 'Plan research for my idea: “' + (c.idea || '') + '”';
+  return x.text;
+}
+// The status of the newest question that has no answer yet.
+function lineFor(x) {
+  if (x.sentAt) return '<p class="mst ok" role="status" id="ast">✓ Claude has your question. The answer will show here.</p>';
+  const mine = askState && askState.qid === x.id, age = Date.now() - (Date.parse(x.at) || 0);
+  if (age < 8000 && (!mine || askState.listening)) { clearTimeout(chatT); chatT = setTimeout(chat, 8100 - age); return '<p class="mst" role="status" id="ast">Sending to Claude…</p>'; }
+  return '<p class="mst" role="status" id="ast">Saved. In Claude Code, go back to Claude and send any message (like “ok”): App Scout attaches your question to it. Anywhere else, copy it and paste it into the chat.<button class="sm" data-copy="' + esc(x.id) + '">Copy</button></p>';
+}
+function chat() {
+  const el = $('chat');
+  if (!D || !chatOpen) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const list = D.questions || [];
+  let h = '';
+  if (!list.length) h = '<p class="mst">Ask about the whole data set, or select an app, segment, keyword or opening on the map first.</p><div>' + sugg(askTarget()).map((t) => '<button class="chip sm" data-s="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>';
+  list.forEach((x, i) => {
+    h += '<div class="msg"><div class="mq"><span class="mtag">' + esc(tagOf(x)) + '</span><span>' + esc(textOf(x)) + '</span></div>' +
+      (x.answer ? '<div class="ma"><b>Claude:</b> ' + esc(x.answer.slice(0, 4000)) + (x.answer.length > 4000 ? '…' : '') + '</div>' : i === list.length - 1 ? lineFor(x) : '') + '</div>';
+  });
+  const end = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  el.innerHTML = h;
+  // Keep the newest message in view when something new arrives.
+  const seen = list.map((x) => x.id + (x.answer ? 'a' : x.sentAt ? 's' : '')).join(',');
+  if (end || seen !== chatSeen) el.scrollTop = el.scrollHeight;
+  chatSeen = seen;
+}
+async function sendToClaude(text, context) {
   if (!D) return { copy: text };
   try {
-    if (!r) r = await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name } } });
-    setTimeout(panel, 8000); // re-check: no monitor picked it up → show the fallback
-    return { qid: r.question.id, listening: r.listening, at: Date.now(), copy: text };
+    const r = await act('question', { session: D.session.id, text, context: { focus: { type: 'category', name: D.session.name }, ...context } });
+    sent(r);
+    return askState;
   } catch (e) { toast(e.message); return null; }
 }
-function askStatus() {
-  const qq = askState.qid && D && (D.questions || []).find((x) => x.id === askState.qid);
-  const done = '<div class="acts"><button data-a="done">Done</button></div>';
-  if (qq && qq.answer) return '<div class="qa" id="ans"><b>Q:</b> ' + esc(qq.text) + '<br><b>Claude:</b> ' + esc(qq.answer.slice(0, 1200)) + (qq.answer.length > 1200 ? '…' : '') + '</div>' + done;
-  if (qq && qq.sentAt) return '<p class="i" style="margin-top:8px;color:var(--ok)" role="status" id="ast">✓ Claude has your question. The answer will show here.</p>' + done;
-  const paste = '<details' + (askState.qid ? '' : ' open') + '><summary>Or paste it into the chat yourself</summary><pre>' + esc(askState.copy) + '</pre><div class="acts"><button data-a="copy">Copy</button></div></details>';
-  if (askState.qid && askState.listening && Date.now() - askState.at < 8000) return '<p class="i" style="margin-top:8px" role="status" id="ast">Sending to Claude…</p>' + done;
-  if (askState.qid) return '<p class="i" style="margin-top:8px" role="status" id="ast">Saved. Go back to Claude and send any message (like “ok”): App Scout attaches your question to it.</p>' + paste + done;
-  return '<p class="i" style="margin-top:8px">Paste this into the chat with Claude:</p>' + paste + done;
+function sent(r) {
+  askState = { qid: r.question.id, listening: r.listening, at: Date.now() };
+  if (D && !(D.questions || []).some((x) => x.id === r.question.id)) D.questions = [...(D.questions || []), r.question];
+  setChatOpen(true);
+  refresh();
 }
+async function askSend() {
+  if (!D) return;
+  const inp = $('qi'), text = inp.value.trim();
+  if (!text) { toast('Type a question first, or pick a suggestion in the chat'); inp.focus(); return; }
+  const btn = $('bSend'); btn.disabled = true;
+  try { const r = await act('question', { session: D.session.id, text, context: contextOf(askTarget()) }); inp.value = ''; sent(r); }
+  catch (err) { toast(err.message); }
+  finally { btn.disabled = false; }
+}
+function askText(qq) {
+  if (qq.context && qq.context.request) return qq.text;
+  return `[App Scout · session ${D.session.id} · question ${qq.id}]\n${qq.text}\n\nMap context: ${JSON.stringify(qq.context)}\n\nAnswer here, then call answer_question (session ${D.session.id}, question_id ${qq.id}) so the map shows the answer.`;
+}
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast('Copied'); } catch (err) { toast('Copy failed: your browser blocked the clipboard'); } }
+$('bSend').onclick = askSend;
+$('qi').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); askSend(); } });
+$('bChat').onclick = () => setChatOpen(!chatOpen);
+$('ctxX').onclick = () => { sel = null; lastKey = ''; draw(); saveView(); $('qi').focus(); };
+$('chat').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-s],[data-copy]'); if (!b) return;
+  if (b.dataset.s) { const inp = $('qi'); inp.value = b.dataset.s; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); return; }
+  const x = D && (D.questions || []).find((y) => y.id === b.dataset.copy); if (x) copyText(askText(x));
+});
+
+// ------------------------------------------------------------------ data set select
+// A native select of the saved data sets, newest first. It shows the open one, follows a new
+// scout by itself, and is not rebuilt while the user has it open.
+let setsKey = '';
+const setLabel = (x) => x.name + ' · ' + x.apps + ' apps · ' + String(x.updated || '').slice(0, 10);
+async function loadSets() { try { dataSets = (await act('sessions', {})).sessions; } catch (e) { if (!dataSets) dataSets = []; } fillSets(); }
+function fillSets() {
+  const el = $('sesSel');
+  let list = (dataSets || []).map((x) => (D && x.id === D.session.id ? { ...x, name: D.session.name, apps: D.apps.length } : x));
+  if (D && !list.some((x) => x.id === D.session.id)) list = [{ id: D.session.id, name: D.session.name, apps: D.apps.length, updated: D.session.updated }, ...list];
+  const key = (D ? '' : '-') + JSON.stringify(list.map(setLabel)) + list.map((x) => x.id).join(',');
+  if (key !== setsKey && document.activeElement !== el) {
+    setsKey = key;
+    el.innerHTML = (D ? '' : '<option value="">' + (list.length ? 'Choose a data set' : 'No data sets yet') + '</option>') + list.map((x) => '<option value="' + esc(x.id) + '">' + esc(setLabel(x)) + '</option>').join('');
+  }
+  el.value = D ? D.session.id : '';
+  el.disabled = !list.length;
+}
+$('sesSel').addEventListener('blur', fillSets);
+$('sesSel').addEventListener('change', async (e) => {
+  const id = e.target.value; if (!id || (D && id === D.session.id)) return;
+  try {
+    mode = 'focus';
+    setData(await act('snapshot', { session: id }));
+    const c = D.viewState && D.viewState.camera; if (c) fly(c[0], c[1], c[2], false); else homeCamera(true);
+    toast('Opened "' + D.session.name + '" where you left off');
+  } catch (err) { toast(err.message); fillSets(); }
+});
 
 $('pn').addEventListener('change', (e) => { const c = e.target.closest('[data-e]'); if (!c) return; c.checked ? exSel.add(c.dataset.e) : exSel.delete(c.dataset.e); const xe = $('xe'); if (xe) xe.textContent = ''; });
 $('pn').addEventListener('click', async (e) => {
   const lnk = e.target.closest('[data-link]'); if (lnk) { e.preventDefault(); if (webUrl(lnk.dataset.link)) window.open(lnk.dataset.link, '_blank', 'noopener,noreferrer'); return; }
-  const b = e.target.closest('[data-a],[data-s],[data-c],[data-r],[data-x],[data-f],[data-m]'); if (!b) return; const d = b.dataset;
+  const b = e.target.closest('[data-a],[data-c],[data-f],[data-m]'); if (!b) return; const d = b.dataset;
   if (d.m !== undefined) { const m = MREF[+d.m]; const sc = m[3] || null; const ttl = sc && sc.app ? sc.app.n + ' · details' : m[2] === 'apps' ? (sc && sc.seg ? segById(sc.seg).name + ' · apps' : sc && sc.kw ? kwById(sc.kw).name + ' · apps' + (sc.lens ? ' · money gaps' : '') : 'Apps found') : m[2] === 'platforms' ? (sc && sc.seg ? segById(sc.seg).name + ' · platforms' : 'Platforms') : m[2] === 'segments' ? 'Segments' : 'Reviews read'; return openModal(m[2], sc, ttl); }
-  if (d.s) { q = d.s; return panel(); }
   if (d.f) { exFmt = d.f; return panel(); }
   if (d.c) { const [key, v] = d.c.split('|'); const arr = plan.selected[key]; const i = arr.indexOf(v); i >= 0 ? arr.splice(i, 1) : arr.push(v); return panel(); }
-  if (d.x !== undefined) { exFor = d.x; mode = 'export'; return panel(); }
-  if (d.r !== undefined) { try { mode = 'focus'; setData(await act('snapshot', { session: d.r })); const c = D.viewState && D.viewState.camera; if (c) fly(c[0], c[1], c[2], false); else homeCamera(true); toast('Continued "' + D.session.name + '" where you left off'); } catch (err) { toast(err.message); } return; }
   const a = d.a;
   if (a === 'group') return askToGroup();
-  if (a === 'ask') { ask = true; askState = null; }
-  else if (a === 'cancel' || a === 'done') { ask = false; askState = null; q = ''; }
-  else if (a === 'copy') { try { await navigator.clipboard.writeText(askState.copy); toast('Copied'); } catch (err) { toast('Select the text and copy it'); } return; }
-  else if (a === 'clear') { sel = null; lastKey = ''; return draw(); }
-  else if (a === 'send') {
-    if (!q.trim()) { $('qe').textContent = 'Pick a suggestion or type a question first'; return; }
-    try {
-      const r = await act('question', { session: D.session.id, text: q.trim(), context: contextOf(focus) });
-      const out = await sendToClaude(askText(r.question), r);
-      if (out) askState = out;
-    } catch (err) { $('qe').textContent = err.message; return; }
-  }
+  if (a === 'copyidea') return copyText(pasteText);
+  if (a === 'clear') { sel = null; lastKey = ''; return draw(); }
   else if (a === 'mkplan') {
     const idea = ($('idea').value || '').trim();
     if (!idea) { $('ie').textContent = 'Describe your idea first'; return; }
-    const out = await sendToClaude(`[App Scout] Plan market research for my idea: "${idea}". Break it into customers, product forms and segments to scout (each with store search phrases), then call plan_research so I can edit the plan.`, null);
-    if (out) { askState = out; mode = 'focus'; ask = true; ideaText = ''; }
+    const out = await sendToClaude(`[App Scout] Plan market research for my idea: "${idea}". Break it into customers, product forms and segments to scout (each with store search phrases), then call plan_research so I can edit the plan.`, { request: 'plan', idea });
+    if (out && out.qid) { mode = 'focus'; ideaText = ''; pasteText = ''; } else if (out) pasteText = out.copy;
   }
   else if (a === 'startplan') {
     if (busy()) return;
@@ -724,14 +836,14 @@ $('pn').addEventListener('click', async (e) => {
     finally { starting = false; busyButtons(); }
     return;
   }
-  else if (a === 'closeplan' || a === 'closeses' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') { plan = null; ideaText = ''; } }
+  else if (a === 'closeplan' || a === 'closeexp') { mode = 'focus'; if (a === 'closeplan') { plan = null; ideaText = ''; pasteText = ''; } }
   else if (a === 'doexp') {
     if (!exSel.size) { $('xe').textContent = 'Pick at least one thing to include'; return; }
-    const sid = exFor || D.session.id;
+    const sid = D.session.id;
     try {
       location.href = '/export?s=' + encodeURIComponent(sid) + '&f=' + exFmt + '&parts=' + [...exSel].join(',') + '&t=' + encodeURIComponent(TOKEN);
       toast('Exported ' + sid + ' as ' + exFmt.toUpperCase());
-      mode = 'focus'; exFor = null;
+      mode = 'focus';
     } catch (err) { $('xe').textContent = err.message; return; }
   }
   panel();
@@ -768,9 +880,8 @@ cv.tabIndex = 0;
 cv.addEventListener('keydown', (e) => { const s = 40 / (k * base()); if (e.key === '+' || e.key === '=') zoomAt(1.4, W / 2, H / 2); else if (e.key === '-') zoomAt(1 / 1.4, W / 2, H / 2); else if (e.key === 'ArrowLeft') cx -= s; else if (e.key === 'ArrowRight') cx += s; else if (e.key === 'ArrowUp') cy -= s; else if (e.key === 'ArrowDown') cy += s; else return; e.preventDefault(); draw(); });
 
 // toolbar
-$('bSes').onclick = async () => { if (mode === 'sessions') { mode = 'focus'; return panel(); } mode = 'sessions'; sessionsList = null; panel(); try { sessionsList = (await act('sessions', {})).sessions; } catch (e) { sessionsList = []; } panel(); };
 $('bPlan').onclick = () => { mode = mode === 'idea' ? 'focus' : 'idea'; panel(); const t = $('idea'); if (t) { t.focus(); t.addEventListener('input', () => ($('ie').textContent = '')); } };
-$('bExport').onclick = () => { if (!D) return toast('Run a scout first'); exFor = null; mode = mode === 'export' ? 'focus' : 'export'; panel(); };
+$('bExport').onclick = () => { if (!D) return toast('Run a scout first'); mode = mode === 'export' ? 'focus' : 'export'; panel(); };
 // Copies this map's link, so the same live map can be opened in another browser too.
 $('bBrowser').onclick = async () => { const url = D ? mapUrl(D.session.id) : location.href; try { await navigator.clipboard.writeText(url); toast('Link copied: open it in any browser, it stays in sync'); } catch (e) { toast(url); } };
 $('stat').onclick = () => { pcShow = !pcShow; progress(); empty(); };
@@ -796,7 +907,7 @@ function render() { size(); panel(); }
     const sid = qs.get('s'), pid = qs.get('plan');
     if (pid) setData(await api('plan', { id: pid }));
     if (sid) setData(await api('snapshot', { session: sid }));
-    else if (!pid) { const l = (await api('sessions', {})).sessions; if (l.length) setData(await api('snapshot', { session: l[0].id })); else render(); }
+    else if (!pid) { const l = dataSets = (await api('sessions', {})).sessions; if (l.length) setData(await api('snapshot', { session: l[0].id })); else { fillSets(); render(); } }
   } catch (e) { toast(e.message); render(); }
   connectWs();
 })();
